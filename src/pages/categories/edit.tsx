@@ -1,7 +1,7 @@
 import { useForm } from "@refinedev/react-hook-form";
 import { useNavigate } from "react-router";
 
-import { EditView } from "@/components/refine-ui/views/edit-view";
+import { EditView } from "@/components/resources/views/edit-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,7 +30,7 @@ export const CategoryEdit = () => {
   return (
     <EditView>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="resource-form">
           <FormField
             control={form.control}
             name="title"
@@ -38,13 +38,13 @@ export const CategoryEdit = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Title</FormLabel>
-                <FormControl>
-                  <Input
+                <FormControl
+                  render={<Input
                     {...field}
                     value={field.value || ""}
                     placeholder="Enter category title"
-                  />
-                </FormControl>
+                  />}
+                />
                 <FormMessage />
               </FormItem>
             )}

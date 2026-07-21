@@ -1,11 +1,7 @@
 import {
   Refine,
-  GitHubBanner,
-  WelcomePage,
   Authenticated,
 } from "@refinedev/core";
-import { DevtoolsPanel, DevtoolsProvider } from "@refinedev/devtools";
-import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
 
 import { BrowserRouter, Route, Routes, Outlet } from "react-router";
 import routerProvider, {
@@ -30,20 +26,22 @@ import { dataProvider } from "./providers/data";
 import { Login } from "./pages/login";
 import { Register } from "./pages/register";
 import { ForgotPassword } from "./pages/forgot-password";
-import { ErrorComponent } from "./components/refine-ui/layout/error-component";
-import { Layout } from "./components/refine-ui/layout/layout";
-import { Header } from "./components/refine-ui/layout/header";
-import { useNotificationProvider } from "./components/refine-ui/notification/use-notification-provider";
-import { Toaster } from "./components/refine-ui/notification/toaster";
-import { ThemeProvider } from "./components/refine-ui/theme/theme-provider";
+import { ErrorComponent } from "./components/app-shell/error-component";
+import { Layout } from "./components/app-shell/layout";
+import { useNotificationProvider } from "./components/notifications/use-notification-provider";
+import { Toaster } from "./components/notifications/toaster";
+import { ThemeProvider } from "./components/theme/theme-provider";
+import { TooltipProvider } from "./components/ui/tooltip";
+import { BrandLogo } from "./components/app-shell/brand";
 import "./App.css";
 import { authProvider } from "./providers/auth";
+import { FileText, Tags } from "lucide-react";
 
 function App() {
   return (
     <BrowserRouter>
-      <RefineKbarProvider>
-        <ThemeProvider>
+      <ThemeProvider>
+        <TooltipProvider>
           <Refine
             dataProvider={dataProvider}
             notificationProvider={useNotificationProvider()}
@@ -57,6 +55,10 @@ function App() {
                 edit: "/blog-posts/edit/:id",
                 show: "/blog-posts/show/:id",
                 meta: {
+                  label: "Blog posts",
+                  icon: <FileText />,
+                  description:
+                    "Create and publish content on a reliable NocoBase data foundation.",
                   canCreate: true,
                   canDelete: true,
                 },
@@ -68,6 +70,10 @@ function App() {
                 edit: "/categories/edit/:id",
                 show: "/categories/show/:id",
                 meta: {
+                  label: "Categories",
+                  icon: <Tags />,
+                  description:
+                    "Organize reusable structures while NocoBase keeps the underlying data consistent.",
                   canCreate: true,
                   canDelete: true,
                 },
@@ -77,6 +83,10 @@ function App() {
               syncWithLocation: true,
               warnWhenUnsavedChanges: true,
               projectId: "72Ag5T-38hVrZ-1G44i8",
+              title: {
+                text: "NocoBase",
+                icon: <BrandLogo className="size-14 rounded-2xl" />,
+              },
             }}
           >
             <Routes>
@@ -127,12 +137,11 @@ function App() {
             </Routes>
 
             <Toaster />
-            <RefineKbar />
             <UnsavedChangesNotifier />
             <DocumentTitleHandler />
           </Refine>
-        </ThemeProvider>
-      </RefineKbarProvider>
+        </TooltipProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

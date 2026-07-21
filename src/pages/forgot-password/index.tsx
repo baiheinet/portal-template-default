@@ -1,4 +1,4 @@
-import { ForgotPasswordForm } from "@/components/refine-ui/form/forgot-password-form";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 import React from "react";
 
 export const ForgotPassword = () => {

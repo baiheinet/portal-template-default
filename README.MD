@@ -19,19 +19,19 @@ Refine resource names must match NocoBase collection names. For example, the sup
 ### Running the development server.
 
 ```bash
-    npm run dev
+pnpm dev
 ```
 
 ### Building for production.
 
 ```bash
-    npm run build
+pnpm build
 ```
 
 ### Running the production server.
 
 ```bash
-    npm run start
+pnpm start
 ```
 
 ## Learn More

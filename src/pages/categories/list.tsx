@@ -4,11 +4,11 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import React from "react";
 
-import { DataTable } from "@/components/refine-ui/data-table/data-table";
-import { ListView } from "@/components/refine-ui/views/list-view";
-import { EditButton } from "@/components/refine-ui/buttons/edit";
-import { ShowButton } from "@/components/refine-ui/buttons/show";
-import { DeleteButton } from "@/components/refine-ui/buttons/delete";
+import { DataTable } from "@/components/data-table/data-table";
+import { ListView } from "@/components/resources/views/list-view";
+import { EditButton } from "@/components/resources/buttons/edit";
+import { ShowButton } from "@/components/resources/buttons/show";
+import { DeleteButton } from "@/components/resources/buttons/delete";
 
 type Category = {
   id: string;

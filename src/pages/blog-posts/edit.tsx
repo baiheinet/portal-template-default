@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Textarea } from "@/components/ui/textarea";
 
-import { EditView } from "@/components/refine-ui/views/edit-view";
+import { EditView } from "@/components/resources/views/edit-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -67,7 +67,7 @@ export const BlogPostEdit = () => {
   return (
     <EditView>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="resource-form">
           <FormField
             control={form.control}
             name="title"
@@ -75,13 +75,13 @@ export const BlogPostEdit = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Title</FormLabel>
-                <FormControl>
-                  <Input
+                <FormControl
+                  render={<Input
                     {...field}
                     value={field.value || ""}
                     placeholder="Enter title"
-                  />
-                </FormControl>
+                  />}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -94,14 +94,14 @@ export const BlogPostEdit = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Content</FormLabel>
-                <FormControl>
-                  <Textarea
+                <FormControl
+                  render={<Textarea
                     {...field}
                     value={field.value || ""}
                     placeholder="Enter content"
                     rows={10}
-                  />
-                </FormControl>
+                  />}
+                />
                 <FormMessage />
               </FormItem>
             )}
@@ -120,11 +120,11 @@ export const BlogPostEdit = () => {
                   onValueChange={field.onChange}
                   value={selectedCategoryId?.toString() || ""}
                 >
-                  <FormControl>
-                    <SelectTrigger>
+                  <FormControl
+                    render={<SelectTrigger>
                       <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
+                    </SelectTrigger>}
+                  />
                   <SelectContent>
                     {categoryOptions?.map((option) => (
                       <SelectItem key={option.value} value={option.value.toString()}>
@@ -149,11 +149,11 @@ export const BlogPostEdit = () => {
                   onValueChange={field.onChange}
                   value={field.value || ""}
                 >
-                  <FormControl>
-                    <SelectTrigger>
+                  <FormControl
+                    render={<SelectTrigger>
                       <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                  </FormControl>
+                    </SelectTrigger>}
+                  />
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="published">Published</SelectItem>

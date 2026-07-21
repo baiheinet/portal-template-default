@@ -3,12 +3,12 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import React from "react";
 
-import { DataTable } from "@/components/refine-ui/data-table/data-table";
-import { ListView } from "@/components/refine-ui/views/list-view";
-import { Badge } from "@/components/ui/badge";
-import { EditButton } from "@/components/refine-ui/buttons/edit";
-import { ShowButton } from "@/components/refine-ui/buttons/show";
-import { DeleteButton } from "@/components/refine-ui/buttons/delete";
+import { DataTable } from "@/components/data-table/data-table";
+import { StatusBadge } from "@/components/resources/status-badge";
+import { ListView } from "@/components/resources/views/list-view";
+import { EditButton } from "@/components/resources/buttons/edit";
+import { ShowButton } from "@/components/resources/buttons/show";
+import { DeleteButton } from "@/components/resources/buttons/delete";
 
 type BlogPost = {
   id: string;
@@ -60,11 +60,7 @@ export const BlogPostList = () => {
         enableSorting: true,
         cell: ({ getValue }) => {
           const status = getValue();
-          return (
-            <Badge variant={status === "published" ? "default" : "secondary"}>
-              {status}
-            </Badge>
-          );
+          return <StatusBadge status={status} />;
         },
       }),
       columnHelper.accessor("createdAt", {

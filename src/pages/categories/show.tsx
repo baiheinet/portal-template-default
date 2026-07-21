@@ -1,7 +1,7 @@
 import { useShow } from "@refinedev/core";
 import React from "react";
 
-import { ShowView } from "@/components/refine-ui/views/show-view";
+import { ShowView } from "@/components/resources/views/show-view";
 import {
   Card,
   CardContent,
@@ -16,7 +16,7 @@ export const CategoryShow = () => {
 
   return (
     <ShowView>
-      <Card>
+      <Card className="resource-detail-card max-w-3xl">
         <CardHeader>
           <CardTitle>{record?.title}</CardTitle>
           <CardDescription>Category ID: {record?.id}</CardDescription>

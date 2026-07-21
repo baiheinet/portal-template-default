@@ -1,7 +1,8 @@
 import { useOne, useShow } from "@refinedev/core";
 import React from "react";
 
-import { ShowView } from "@/components/refine-ui/views/show-view";
+import { ShowView } from "@/components/resources/views/show-view";
+import { StatusBadge } from "@/components/resources/status-badge";
 import {
   Card,
   CardContent,
@@ -9,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 export const BlogPostShow = () => {
@@ -29,19 +29,13 @@ export const BlogPostShow = () => {
 
   return (
     <ShowView>
-      <div className="space-y-6">
-        <Card>
+      <div className="max-w-4xl space-y-6">
+        <Card className="resource-detail-card">
           <CardHeader>
             <CardTitle>{record?.title}</CardTitle>
             <CardDescription>
               <div className="flex items-center gap-4">
-                <Badge
-                  variant={
-                    record?.status === "published" ? "default" : "secondary"
-                  }
-                >
-                  {record?.status}
-                </Badge>
+                <StatusBadge status={record?.status} />
                 <span className="text-sm text-muted-foreground">
                   ID: {record?.id}
                 </span>
