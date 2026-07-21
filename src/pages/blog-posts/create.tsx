@@ -34,6 +34,12 @@ export const BlogPostCreate = () => {
 
   const { options: categoryOptions } = useSelect({
     resource: "categories",
+    optionLabel: "title",
+    optionValue: "id",
+    pagination: {
+      currentPage: 1,
+      pageSize: 100,
+    },
   });
 
   function onSubmit(values: Record<string, string>) {
@@ -85,14 +91,14 @@ export const BlogPostCreate = () => {
 
           <FormField
             control={form.control}
-            name={"category.id"}
+            name="categoryId"
             rules={{ required: "Category is required" }}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value || ""}
+                  value={field.value?.toString() || ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -101,7 +107,7 @@ export const BlogPostCreate = () => {
                   </FormControl>
                   <SelectContent>
                     {categoryOptions?.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <SelectItem key={option.value} value={option.value.toString()}>
                         {option.label}
                       </SelectItem>
                     ))}

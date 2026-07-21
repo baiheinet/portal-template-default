@@ -286,7 +286,7 @@ function ItemIcon({ icon, isSelected }: IconProps) {
     <div
       className={cn("w-4", {
         "text-muted-foreground": !isSelected,
-        "text-sidebar-primary-foreground": isSelected,
+        "text-foreground": isSelected,
       })}
     >
       {icon ?? <ListIcon />}
@@ -317,16 +317,17 @@ function SidebarButton({
     <>
       <ItemIcon icon={item.meta?.icon ?? item.icon} isSelected={isSelected} />
       <span
-        className={cn("tracking-[-0.00875rem]", {
-          "flex-1": rightIcon,
-          "text-left": rightIcon,
-          "line-clamp-1": !rightIcon,
-          truncate: !rightIcon,
-          "font-normal": !isSelected,
-          "font-semibold": isSelected,
-          "text-sidebar-primary-foreground": isSelected,
-          "text-foreground": !isSelected,
-        })}
+        className={cn(
+          "tracking-[-0.00875rem] text-foreground",
+          {
+            "flex-1": rightIcon,
+            "text-left": rightIcon,
+            "line-clamp-1": !rightIcon,
+            truncate: !rightIcon,
+            "font-normal": !isSelected,
+            "font-medium": isSelected,
+          },
+        )}
       >
         {getDisplayName(item)}
       </span>
@@ -338,14 +339,12 @@ function SidebarButton({
     <Button
       asChild={!!(asLink && item.route)}
       variant="ghost"
-      size="lg"
+      size="default"
       className={cn(
-        "flex w-full items-center justify-start gap-2 py-2 !px-3 text-sm",
+        "flex h-10 w-full items-center justify-start gap-2 rounded-xl px-3 text-sm",
         {
-          "bg-sidebar-primary": isSelected,
-          "hover:!bg-sidebar-primary/90": isSelected,
-          "text-sidebar-primary-foreground": isSelected,
-          "hover:text-sidebar-primary-foreground": isSelected,
+          "bg-foreground/10 hover:!bg-foreground/15": isSelected,
+          "text-foreground hover:text-foreground": isSelected,
         },
         className
       )}

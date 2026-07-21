@@ -1,5 +1,6 @@
 import { useForm } from "@refinedev/react-hook-form";
 import { useSelect } from "@refinedev/core";
+import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -29,16 +30,33 @@ export const BlogPostEdit = () => {
     refineCore: { onFinish, query },
     ...form
   } = useForm({
-    refineCoreProps: {},
+    refineCoreProps: {
+      meta: {
+        appends: ["category"],
+      },
+    },
   });
 
   const blogPostsData = query?.data?.data;
+  const defaultCategoryId =
+    blogPostsData?.categoryId ?? blogPostsData?.category?.id;
+
+  useEffect(() => {
+    if (defaultCategoryId != null && !form.getValues("categoryId")) {
+      form.setValue("categoryId", defaultCategoryId.toString(), {
+        shouldDirty: false,
+      });
+    }
+  }, [defaultCategoryId, form]);
 
   const { options: categoryOptions } = useSelect({
     resource: "categories",
-    defaultValue: blogPostsData?.category,
-    queryOptions: {
-      enabled: !!blogPostsData?.category,
+    defaultValue: defaultCategoryId?.toString(),
+    optionLabel: "title",
+    optionValue: "id",
+    pagination: {
+      currentPage: 1,
+      pageSize: 100,
     },
   });
 
@@ -91,14 +109,16 @@ export const BlogPostEdit = () => {
 
           <FormField
             control={form.control}
-            name={"category.id"}
+            name="categoryId"
             rules={{ required: "Category is required" }}
-            render={({ field }) => (
-              <FormItem>
+            render={({ field }) => {
+              const selectedCategoryId = field.value ?? defaultCategoryId;
+
+              return <FormItem>
                 <FormLabel>Category</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value || ""}
+                  value={selectedCategoryId?.toString() || ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -107,15 +127,15 @@ export const BlogPostEdit = () => {
                   </FormControl>
                   <SelectContent>
                     {categoryOptions?.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <SelectItem key={option.value} value={option.value.toString()}>
                         {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
-              </FormItem>
-            )}
+              </FormItem>;
+            }}
           />
 
           <FormField

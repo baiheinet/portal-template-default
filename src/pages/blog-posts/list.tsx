@@ -1,6 +1,6 @@
-import { useList } from "@refinedev/core";
 import { useTable } from "@refinedev/react-table";
 import { createColumnHelper } from "@tanstack/react-table";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import React from "react";
 
 import { DataTable } from "@/components/refine-ui/data-table/data-table";
@@ -20,18 +20,6 @@ type BlogPost = {
 };
 
 export const BlogPostList = () => {
-  // fetch all categories to use in the combobox filter
-  const {
-    result: { data: categories },
-    query: { isLoading: categoryIsLoading },
-  } = useList({
-    resource: "categories",
-    pagination: {
-      currentPage: 1,
-      pageSize: 999,
-    },
-  });
-
   const columns = React.useMemo(() => {
     const columnHelper = createColumnHelper<BlogPost>();
 
@@ -63,9 +51,7 @@ export const BlogPostList = () => {
         header: "Category",
         enableSorting: false,
         cell: ({ row }) => {
-          const categoryId = row.original.category?.id;
-          const category = categories?.find((item) => item.id === categoryId);
-          return categoryIsLoading ? "Loading..." : category?.title || "-";
+          return row.original.category?.title || "-";
         },
       }),
       columnHelper.accessor("status", {
@@ -94,22 +80,50 @@ export const BlogPostList = () => {
         id: "actions",
         header: "Actions",
         cell: ({ row }) => (
-          <div className="flex gap-2">
-            <EditButton recordItemId={row.original.id} size="sm" />
-            <ShowButton recordItemId={row.original.id} size="sm" />
-            <DeleteButton recordItemId={row.original.id} size="sm" />
+          <div className="flex items-center gap-1">
+            <EditButton
+              recordItemId={row.original.id}
+              variant="ghost"
+              size="icon"
+              aria-label="Edit post"
+              title="Edit"
+            >
+              <Pencil />
+            </EditButton>
+            <ShowButton
+              recordItemId={row.original.id}
+              variant="ghost"
+              size="icon"
+              aria-label="View post"
+              title="View"
+            >
+              <Eye />
+            </ShowButton>
+            <DeleteButton
+              recordItemId={row.original.id}
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive"
+              aria-label="Delete post"
+              title="Delete"
+            >
+              <Trash2 />
+            </DeleteButton>
           </div>
         ),
         enableSorting: false,
-        size: 290,
+        size: 144,
       }),
     ];
-  }, [categories, categoryIsLoading]);
+  }, []);
 
   const table = useTable({
     columns,
     refineCoreProps: {
       syncWithLocation: true,
+      meta: {
+        appends: ["category"],
+      },
     },
   });
 

@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 
 export const SignInForm = () => {
   const [rememberMe, setRememberMe] = useState(false);
-  const [email, setEmail] = useState("");
+  const [account, setAccount] = useState("");
   const [password, setPassword] = useState("");
 
   const Link = useLink();
@@ -35,8 +35,8 @@ export const SignInForm = () => {
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    login({
-      email,
+      login({
+      username: account,
       password,
     });
   };
@@ -99,14 +99,14 @@ export const SignInForm = () => {
         <CardContent className={cn("px-0")}>
           <form onSubmit={handleSignIn}>
             <div className={cn("flex", "flex-col", "gap-2")}>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="account">Username or email</Label>
               <Input
-                id="email"
-                type="email"
+                id="account"
+                type="text"
                 placeholder=""
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={account}
+                onChange={(e) => setAccount(e.target.value)}
               />
             </div>
             <div

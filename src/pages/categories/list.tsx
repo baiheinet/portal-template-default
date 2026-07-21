@@ -1,6 +1,7 @@
 import { type BaseRecord } from "@refinedev/core";
 import { useTable } from "@refinedev/react-table";
 import { createColumnHelper } from "@tanstack/react-table";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import React from "react";
 
 import { DataTable } from "@/components/refine-ui/data-table/data-table";
@@ -33,14 +34,39 @@ export const CategoryList = () => {
         id: "actions",
         header: "Actions",
         cell: ({ row }) => (
-          <div className="flex gap-2">
-            <EditButton recordItemId={row.original.id} size="sm" />
-            <ShowButton recordItemId={row.original.id} size="sm" />
-            <DeleteButton recordItemId={row.original.id} size="sm" />
+          <div className="flex items-center gap-1">
+            <EditButton
+              recordItemId={row.original.id}
+              variant="ghost"
+              size="icon"
+              aria-label="Edit category"
+              title="Edit"
+            >
+              <Pencil />
+            </EditButton>
+            <ShowButton
+              recordItemId={row.original.id}
+              variant="ghost"
+              size="icon"
+              aria-label="View category"
+              title="View"
+            >
+              <Eye />
+            </ShowButton>
+            <DeleteButton
+              recordItemId={row.original.id}
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive"
+              aria-label="Delete category"
+              title="Delete"
+            >
+              <Trash2 />
+            </DeleteButton>
           </div>
         ),
         enableSorting: false,
-        size: 290,
+        size: 144,
       }),
     ];
   }, []);
