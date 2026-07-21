@@ -8,14 +8,41 @@ export function BrandLogo({ className }: BrandLogoProps) {
   return (
     <span
       className={cn(
-        "inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-sm ring-1 ring-black/5",
+        "inline-flex size-10 shrink-0 items-center justify-center overflow-hidden",
         className
       )}
     >
       <img
-        src="/nocobase-logo.png"
+        src="/logo-mark.png"
         alt=""
-        className="size-full object-contain"
+        className="size-full object-contain dark:hidden"
+      />
+      <img
+        src="/logo-mark-dark.png"
+        alt=""
+        className="hidden size-full object-contain dark:block"
+      />
+    </span>
+  );
+}
+
+export function BrandWordmark({ className }: BrandLogoProps) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-8 shrink-0 items-center overflow-hidden",
+        className
+      )}
+    >
+      <img
+        src="/logo.png"
+        alt="NocoBase"
+        className="h-full w-auto object-contain dark:hidden"
+      />
+      <img
+        src="/logo-dark.png"
+        alt="NocoBase"
+        className="hidden h-full w-auto object-contain dark:block"
       />
     </span>
   );
@@ -32,12 +59,11 @@ export function Brand({
   showText = true,
 }: BrandProps) {
   return (
-    <div className={cn("flex min-w-0 items-center gap-3", className)}>
-      <BrandLogo className={logoClassName} />
-      {showText && (
-        <span className="truncate text-base font-semibold tracking-[-0.02em] text-foreground">
-          NocoBase
-        </span>
+    <div className={cn("flex min-w-0 items-center", className)}>
+      {showText ? (
+        <BrandWordmark className={logoClassName} />
+      ) : (
+        <BrandLogo className={logoClassName} />
       )}
     </div>
   );

@@ -83,7 +83,7 @@ function MobileHeader() {
           !isMobile && "hidden"
         )}
       />
-      <Brand logoClassName="size-8 rounded-lg" />
+      <Brand logoClassName="h-6" />
       <ThemeToggle className={cn("size-9")} />
     </header>
   );

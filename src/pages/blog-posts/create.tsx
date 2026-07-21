@@ -97,6 +97,10 @@ export const BlogPostCreate = () => {
               <FormItem>
                 <FormLabel>Category</FormLabel>
                 <Select
+                  items={categoryOptions?.map((option) => ({
+                    label: option.label,
+                    value: option.value.toString(),
+                  }))}
                   onValueChange={field.onChange}
                   value={field.value?.toString() || ""}
                 >
@@ -125,7 +129,15 @@ export const BlogPostCreate = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={"draft"}>
+                <Select
+                  items={{
+                    draft: "Draft",
+                    published: "Published",
+                    rejected: "Rejected",
+                  }}
+                  onValueChange={field.onChange}
+                  defaultValue={"draft"}
+                >
                   <FormControl
                     render={<SelectTrigger>
                       <SelectValue placeholder="Select status" />

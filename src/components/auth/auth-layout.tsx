@@ -19,7 +19,7 @@ export function AuthLayout({
     <div className="grid min-h-svh md:grid-cols-[minmax(420px,44%)_1fr]">
       <main className="grid place-items-center bg-card px-6 py-10 sm:px-12">
         <div className="w-full max-w-sm">
-          <Brand className="mb-14" logoClassName="size-9 rounded-lg" />
+          <Brand className="mb-14" logoClassName="h-10" />
           <h1 className="text-3xl font-semibold tracking-[-0.035em]">
             {title}
           </h1>

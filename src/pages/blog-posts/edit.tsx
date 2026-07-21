@@ -117,6 +117,10 @@ export const BlogPostEdit = () => {
               return <FormItem>
                 <FormLabel>Category</FormLabel>
                 <Select
+                  items={categoryOptions?.map((option) => ({
+                    label: option.label,
+                    value: option.value.toString(),
+                  }))}
                   onValueChange={field.onChange}
                   value={selectedCategoryId?.toString() || ""}
                 >
@@ -146,6 +150,11 @@ export const BlogPostEdit = () => {
               <FormItem>
                 <FormLabel>Status</FormLabel>
                 <Select
+                  items={{
+                    draft: "Draft",
+                    published: "Published",
+                    rejected: "Rejected",
+                  }}
                   onValueChange={field.onChange}
                   value={field.value || ""}
                 >

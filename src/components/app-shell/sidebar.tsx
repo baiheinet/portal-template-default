@@ -227,7 +227,7 @@ function SidebarHeader() {
     >
       <Brand
         showText={open}
-        logoClassName={cn("transition-transform duration-200", !open && "size-8")}
+        logoClassName={cn("transition-transform duration-200", !open && "size-9")}
       />
     </ShadcnSidebarHeader>
   );
