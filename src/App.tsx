@@ -37,9 +37,11 @@ import "./App.css";
 import { authProvider } from "./providers/auth";
 import { FileText, Tags } from "lucide-react";
 
+const basename = import.meta.env.BASE_URL.replace(/\/+$/, "");
+
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename || undefined}>
       <ThemeProvider>
         <TooltipProvider>
           <Refine
