@@ -2,6 +2,11 @@ import type { AuthProvider } from "@refinedev/core";
 
 import { nocobaseClient } from "@/lib/nocobase/client";
 import {
+  clearAcl,
+  loadAcl,
+  type Role,
+} from "@/lib/nocobase/acl";
+import {
   getNocoBaseErrorMessage,
   NocoBaseHttpError,
 } from "@/lib/nocobase/error";
@@ -12,6 +17,7 @@ type NocoBaseUser = {
   username?: string;
   email?: string;
   avatar?: string;
+  roles?: Role[];
 };
 
 type NocoBaseSignInResponse = {
@@ -115,7 +121,9 @@ export const authProvider: AuthProvider = {
       }
 
       nocobaseClient.setToken(result.token);
+      nocobaseClient.setRole(null);
       clearCurrentUserCache();
+      clearAcl();
       return { success: true, redirectTo: "/" };
     } catch (error) {
       return {
@@ -144,7 +152,9 @@ export const authProvider: AuthProvider = {
       }
     } finally {
       nocobaseClient.setToken(null);
+      nocobaseClient.setRole(null);
       clearCurrentUserCache();
+      clearAcl();
     }
 
     return { success: true, redirectTo: "/login" };
@@ -156,12 +166,20 @@ export const authProvider: AuthProvider = {
       return { authenticated: true };
     } catch {
       nocobaseClient.setToken(null);
+      nocobaseClient.setRole(null);
       clearCurrentUserCache();
+      clearAcl();
       return { authenticated: false, redirectTo: "/login" };
     }
   },
 
-  getPermissions: async () => null,
+  getPermissions: async () => {
+    try {
+      return await loadAcl();
+    } catch {
+      return null;
+    }
+  },
 
   getIdentity: async () => {
     try {
@@ -175,6 +193,7 @@ export const authProvider: AuthProvider = {
         fullName,
         email: user.email ?? "",
         avatar: user.avatar,
+        roles: user.roles ?? [],
       };
     } catch {
       return null;
@@ -186,9 +205,11 @@ export const authProvider: AuthProvider = {
       (error as { status?: number; statusCode?: number }).status ??
       (error as { status?: number; statusCode?: number }).statusCode;
 
-    if (status === 401 || status === 403) {
+    if (status === 401) {
       nocobaseClient.setToken(null);
+      nocobaseClient.setRole(null);
       clearCurrentUserCache();
+      clearAcl();
       return { logout: true, redirectTo: "/login" };
     }
 
