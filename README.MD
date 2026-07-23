@@ -30,6 +30,76 @@ pnpm dev
 pnpm build
 ```
 
+### Extensions and the NocoBase Shadcn Registry
+
+The starter separates framework-owned extension support from installed Registry
+source:
+
+- `src/app/extension.ts` defines the generic extension contract.
+- `src/app/extensions.tsx` discovers `src/extensions/*/extension.tsx` and adds
+  its providers, Refine resources, and routes to the app.
+- `registry/<name>` contains the canonical authoring source for a Registry
+  package while it is developed in this repository.
+- `src/extensions/<name>` contains installed, application-owned source.
+  Downstream applications can commit this directory like any other source code.
+
+`registry.config.json` is the only authoring manifest. In addition to standard
+Shadcn Registry item fields, each item has a local `source` mapping used to
+generate its standard `files` array. The same mapping lets the starter's
+`postinstall` hook copy a locally authored extension only when its target is
+missing. Existing installed source is never compared, updated, or overwritten.
+
+You can run the same missing-only installation explicitly with:
+
+```bash
+pnpm registry:install
+```
+
+This repository currently authors four incremental NocoBase AI entries:
+
+- `ai-runtime` provides AI services, providers, transports, and
+  controllers. Its NocoBase requests use the starter's shared
+  `src/lib/nocobase/client.ts` client.
+- `ai-chat` adds the reusable chat components and depends on the
+  runtime entry.
+- `ai-react-hook-form` adds the optional React Hook Form adapter for the fixed
+  Form filler Tool.
+- `ai` adds the Refine extension integration and Demo pages and depends on the
+  chat entry.
+
+To refresh the local preview from the canonical Registry source, run:
+
+```bash
+pnpm registry:preview
+```
+
+This is the only command that intentionally replaces the local preview at
+`src/extensions/nocobase-ai`. Normal `pnpm dev`, `pnpm install`, and
+`pnpm registry:install` do not overwrite an installed extension.
+
+Build the standard Shadcn Registry JSON files into `public/r` with:
+
+```bash
+pnpm registry:build
+```
+
+With the development server running, a compatible starter can also add the
+complete item through Shadcn:
+
+```bash
+pnpm dlx shadcn@latest add @nocobase/ai
+```
+
+Shadcn does not keep a Registry item lock or merge local changes. Re-running
+`add` downloads the current item, skips identical files, and asks before
+replacing different files. Use `--diff` to inspect an update and `--overwrite`
+to accept the Registry version explicitly.
+
+The Registry alias is configured in `components.json` and resolves to
+`http://localhost:5173/r/{name}.json` during local development. The same generic
+extension host and Registry source mapping can be reused for future Registry
+packages without adding package-specific logic to `App.tsx` or the installer.
+
 ### Running the production server.
 
 ```bash
