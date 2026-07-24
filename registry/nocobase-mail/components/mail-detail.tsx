@@ -1,0 +1,407 @@
+import { useEffect, useRef, useState } from "react";
+import { format, parseISO } from "date-fns";
+import {
+  Archive,
+  ChevronDown,
+  CornerUpLeft,
+  CornerUpRight,
+  Forward,
+  MessagesSquare,
+  Paperclip,
+  Star,
+  Trash2,
+} from "lucide-react";
+import type { MailLabel, MailMessage, MailNote } from "./types";
+import { MailAttachmentList } from "./mail-attachment-list";
+import { MailLabelsEditor } from "./mail-labels-editor";
+import { MailNoteEditor } from "./mail-note-editor";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+
+function formatFullDate(dateStr?: string) {
+  if (!dateStr) return "";
+  try {
+    return format(parseISO(dateStr), "MMM d, yyyy · HH:mm");
+  } catch {
+    return dateStr;
+  }
+}
+
+function displayName(message: MailMessage) {
+  return message.fromUser?.name || message.from || "Unknown";
+}
+
+function formatAddressList(users?: { name?: string; address: string }[], raw?: string) {
+  if (users?.length) {
+    return users.map((u) => u.name || u.address).join(", ");
+  }
+  return raw || "";
+}
+
+function initials(name: string) {
+  return name
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
+function MailHtmlBody({ html }: { html: string }) {
+  const frameRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+
+    let observer: ResizeObserver | undefined;
+
+    const resize = () => {
+      try {
+        const doc = frame.contentDocument;
+        if (!doc?.body) return;
+        frame.style.height = `${doc.body.scrollHeight + 32}px`;
+        if (!observer && typeof ResizeObserver !== "undefined") {
+          observer = new ResizeObserver(() => {
+            try {
+              frame.style.height = `${doc.body.scrollHeight + 32}px`;
+            } catch {
+              /* frame torn down */
+            }
+          });
+          observer.observe(doc.body);
+        }
+      } catch {
+        /* not measurable */
+      }
+    };
+
+    frame.addEventListener("load", resize);
+    const fallback = setTimeout(resize, 150);
+
+    return () => {
+      frame.removeEventListener("load", resize);
+      clearTimeout(fallback);
+      observer?.disconnect();
+    };
+  }, [html]);
+
+  return (
+    <iframe
+      ref={frameRef}
+      title="Email content"
+      sandbox="allow-same-origin"
+      srcDoc={html}
+      className="w-full border-0 bg-white transition-[height] duration-200"
+      style={{ minHeight: 240 }}
+    />
+  );
+}
+
+function buildThread(message: MailMessage): MailMessage[] {
+  const children = message.children?.length
+    ? message.children
+    : (message.childrenMessages ?? []);
+  const seen = new Set<number>();
+  const all = [message, ...children].filter((m) => {
+    if (m.id == null || seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+  return all.sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+}
+
+function formatShortDate(dateStr?: string) {
+  if (!dateStr) return "";
+  try {
+    return format(parseISO(dateStr), "MMM d");
+  } catch {
+    return "";
+  }
+}
+
+function MailThreadMessage({
+  message,
+  expanded,
+  onToggle,
+  collapsible = true,
+}: {
+  message: MailMessage;
+  expanded: boolean;
+  onToggle: () => void;
+  collapsible?: boolean;
+}) {
+  const name = displayName(message);
+  const body = message.bodyHtml || message.bodyText || "";
+  const isPlainText = !message.bodyHtml && Boolean(message.bodyText);
+  const snippet = (message.bodyText || "").replace(/\s+/g, " ").trim().slice(0, 90);
+  const isExpanded = collapsible ? expanded : true;
+
+  const headerContent = (
+    <>
+      <Avatar size="sm">
+        <AvatarFallback className="bg-primary/15 text-[10px] font-semibold text-primary">
+          {initials(name)}
+        </AvatarFallback>
+      </Avatar>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline gap-2">
+          <span className="shrink-0 text-sm font-semibold text-foreground">
+            {name}
+          </span>
+          {!isExpanded && snippet && (
+            <span className="truncate text-xs text-muted-foreground">
+              {snippet}
+            </span>
+          )}
+        </span>
+        {isExpanded && (
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+            <span className="font-medium text-foreground/80">{message.from}</span>
+            <span> · to {formatAddressList(message.toUsers, message.to)}</span>
+            {message.cc && (
+              <span> · cc {formatAddressList(message.ccUsers, message.cc)}</span>
+            )}
+          </span>
+        )}
+      </span>
+      {message.attachments?.length ? (
+        <Paperclip className="size-3.5 shrink-0 text-muted-foreground" />
+      ) : null}
+      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+        {isExpanded ? formatFullDate(message.date) : formatShortDate(message.date)}
+      </span>
+      {collapsible && (
+        <ChevronDown
+          className={cn(
+            "size-4 shrink-0 text-muted-foreground transition-transform duration-200",
+            isExpanded && "rotate-180"
+          )}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <div className="border-b border-border/60 last:border-0">
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={isExpanded}
+          className={cn(
+            "flex w-full items-center gap-3 px-6 py-3.5 text-left transition-colors hover:bg-muted/40",
+            isExpanded && "bg-muted/25"
+          )}
+        >
+          {headerContent}
+        </button>
+      ) : (
+        <div className="flex w-full items-center gap-3 px-6 py-3.5 text-left">
+          {headerContent}
+        </div>
+      )}
+
+      {isExpanded && (
+        <div className="px-6 pb-5">
+          {body ? (
+            isPlainText ? (
+              <pre className="font-sans text-sm leading-6 whitespace-pre-wrap text-foreground">
+                {message.bodyText}
+              </pre>
+            ) : (
+              <MailHtmlBody html={body} />
+            )
+          ) : (
+            <p className="py-2 text-sm text-muted-foreground">
+              This message has no content.
+            </p>
+          )}
+
+          {message.attachments?.length ? (
+            <MailAttachmentList
+              messageId={message.id}
+              attachments={message.attachments}
+              className="mt-4"
+            />
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function MailDetail({
+  message,
+  loading,
+  onReply,
+  onReplyAll,
+  onForward,
+  onToggleTodo,
+  onArchive,
+  onTrash,
+  onLabelsChange,
+  onNoteChange,
+  className,
+}: {
+  message?: MailMessage;
+  loading: boolean;
+  onReply?: (message: MailMessage) => void;
+  onReplyAll?: (message: MailMessage) => void;
+  onForward?: (message: MailMessage) => void;
+  onToggleTodo?: (message: MailMessage) => void;
+  onArchive?: (message: MailMessage) => void;
+  onTrash?: (message: MailMessage) => void;
+  onLabelsChange?: (message: MailMessage, labels: MailLabel[]) => void;
+  onNoteChange?: (message: MailMessage, note: MailNote | undefined) => void;
+  className?: string;
+}) {
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!message) {
+      setExpandedIds(new Set());
+      return;
+    }
+    const thread = buildThread(message);
+    const latest = thread[thread.length - 1];
+    setExpandedIds(latest ? new Set([latest.id]) : new Set());
+  }, [message]);
+
+  const toggleExpanded = (id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className={cn("flex flex-col gap-4 p-6", className)}>
+        <Skeleton className="h-7 w-2/3" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-9 rounded-full" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-3.5 w-40" />
+            <Skeleton className="h-3 w-56" />
+          </div>
+        </div>
+        <Separator />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-5/6" />
+        <Skeleton className="h-3 w-4/6" />
+        <Skeleton className="h-3 w-3/6" />
+      </div>
+    );
+  }
+
+  if (!message) return null;
+
+  const thread = buildThread(message);
+
+  return (
+    <div className={cn("flex flex-col", className)}>
+      <div className="border-b border-border/60 py-5 pl-6 pr-14">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+              <h2 className="min-w-0 text-xl font-semibold tracking-[-0.02em] text-foreground">
+                {message.subject || "(no subject)"}
+              </h2>
+              {thread.length > 1 && (
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                  <MessagesSquare className="size-3" />
+                  {thread.length} messages
+                </span>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <MailLabelsEditor
+                message={message}
+                onChange={(labels) => onLabelsChange?.(message, labels)}
+              />
+              <MailNoteEditor
+                message={message}
+                onChange={(note) => onNoteChange?.(message, note)}
+              />
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Reply"
+              onClick={() => onReply?.(message)}
+            >
+              <CornerUpLeft />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Reply all"
+              onClick={() => onReplyAll?.(message)}
+            >
+              <CornerUpRight />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Forward"
+              onClick={() => onForward?.(message)}
+            >
+              <Forward />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title={message.isTodo ? "Remove star" : "Star"}
+              onClick={() => onToggleTodo?.(message)}
+            >
+              <Star
+                className={cn(
+                  message.isTodo && "fill-amber-400 text-amber-400"
+                )}
+              />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Archive"
+              onClick={() => onArchive?.(message)}
+            >
+              <Archive />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Move to trash"
+              onClick={() => onTrash?.(message)}
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col">
+        {thread.map((threadMessage) => (
+          <MailThreadMessage
+            key={threadMessage.id}
+            message={threadMessage}
+            expanded={expandedIds.has(threadMessage.id)}
+            onToggle={() => toggleExpanded(threadMessage.id)}
+            collapsible={thread.length > 1}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}

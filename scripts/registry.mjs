@@ -10,9 +10,9 @@ const configPath = path.join(projectRoot, "registry.config.json");
 const outputPath = path.join(projectRoot, "registry.json");
 const action = process.argv[2];
 
-if (!new Set(["build", "install-missing", "preview"]).has(action)) {
+if (!new Set(["build", "install-missing", "preview", "link", "unlink"]).has(action)) {
   throw new Error(
-    "Usage: node scripts/registry.mjs <build|install-missing|preview>"
+    "Usage: node scripts/registry.mjs <build|install-missing|preview|link|unlink>"
   );
 }
 
@@ -146,6 +146,40 @@ function copySource(source, overwrite) {
   }
 }
 
+function linkSource(source) {
+  const sourcePath = path.join(projectRoot, source.root);
+  const targetPath = path.join(projectRoot, source.target);
+  const relativePath = path.relative(path.dirname(targetPath), sourcePath);
+
+  if (fs.lstatSync(targetPath, { throwIfNoEntry: false })?.isSymbolicLink()) {
+    console.log(`${source.target}: already linked`);
+    return;
+  }
+  if (fs.existsSync(targetPath)) {
+    fs.rmSync(targetPath, { recursive: true, force: true });
+  }
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+  fs.symlinkSync(relativePath, targetPath, "dir");
+  console.log(`${source.target}: linked -> ${source.root}`);
+}
+
+function unlinkSource(source) {
+  const targetPath = path.join(projectRoot, source.target);
+  const stat = fs.lstatSync(targetPath, { throwIfNoEntry: false });
+
+  if (!stat) {
+    copySource(source, false);
+    return;
+  }
+  if (!stat.isSymbolicLink()) {
+    console.log(`${source.target}: not a symlink, preserved`);
+    return;
+  }
+  fs.rmSync(targetPath);
+  copySource(source, false);
+  console.log(`${source.target}: unlinked, restored from ${source.root}`);
+}
+
 if (action === "build") {
   const registry = {
     $schema: "https://ui.shadcn.com/schema/registry.json",
@@ -155,6 +189,11 @@ if (action === "build") {
   fs.writeFileSync(outputPath, `${JSON.stringify(registry, null, 2)}\n`);
   for (const item of items) {
     console.log(`${item.name}: ${item.files.length} files`);
+  }
+} else if (action === "link" || action === "unlink") {
+  for (const source of sourceMappings.values()) {
+    if (action === "link") linkSource(source);
+    else unlinkSource(source);
   }
 } else {
   for (const source of sourceMappings.values()) {

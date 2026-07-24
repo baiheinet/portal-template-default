@@ -36,9 +36,17 @@ import { accessControlProvider } from "./providers/access-control";
 import { AclBootstrap } from "./components/access-control/acl-bootstrap";
 import { ResourceAccessGuard } from "./components/access-control/resource-access-guard";
 import { NavigateToAccessibleResource } from "./components/access-control/navigate-to-accessible-resource";
-import { UsersRound } from "lucide-react";
+import { UsersRound, Mail, FlaskConical } from "lucide-react";
 import { i18nProvider } from "./providers/i18n";
 import { SystemSettingsProvider } from "./providers/system-settings";
+import { MailManagerPage, MailComposePage } from "./pages/mail";
+import {
+  MailDemosOverview,
+  MailDemoAllUsers,
+  MailDemoPersonal,
+  MailDemoUserMail,
+  MailDemoComposeAnywhere,
+} from "./pages/mail-demos";
 
 const coreResources: ResourceProps[] = [
   {
@@ -62,6 +70,25 @@ const coreResources: ResourceProps[] = [
       acl: {
         type: "collection",
       },
+    },
+  },
+
+  {
+    name: "mailMessages",
+    list: "/admin/mail",
+    meta: {
+      label: "Mail",
+      icon: <Mail />,
+      description: "Read and manage mailbox messages.",
+    },
+  },
+  {
+    name: "mailDemos",
+    list: "/admin/mail-demos",
+    meta: {
+      label: "Mail Demos",
+      icon: <FlaskConical />,
+      description: "Five ways to use the mail components.",
     },
   },
 ];
@@ -93,10 +120,11 @@ function App() {
               }}
             >
             <Routes>
+
               <Route
                 element={
                   <Authenticated
-                    key="authenticated-inner"
+                    key="authenticated-admin"
                     fallback={<CatchAllNavigate to="/login" />}
                   >
                     <AclBootstrap>
@@ -163,6 +191,15 @@ function App() {
                       }
                     />
                   </Route>
+                </Route>
+                <Route path="/admin">
+                  <Route path="mail" element={<MailManagerPage />} />
+                  <Route path="mail/compose" element={<MailComposePage />} />
+                  <Route path="mail-demos" element={<MailDemosOverview />} />
+                  <Route path="mail-demos/all-users" element={<MailDemoAllUsers />} />
+                  <Route path="mail-demos/personal" element={<MailDemoPersonal />} />
+                  <Route path="mail-demos/filtered" element={<MailDemoUserMail />} />
+                  <Route path="mail-demos/compose-anywhere" element={<MailDemoComposeAnywhere />} />
                 </Route>
                 {extensionRouteElements}
                 <Route path="*" element={<ErrorComponent />} />
