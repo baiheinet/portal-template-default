@@ -1,6 +1,6 @@
 {
   "name": "@nocobase/portal-template-default",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "type": "module",
   "devDependencies": {
     "@ai-sdk/react": "2.0.0",
