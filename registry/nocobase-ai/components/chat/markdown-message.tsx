@@ -9,6 +9,22 @@ type MarkdownMessageProps = {
   variant?: "chat" | "document";
 };
 
+function formatStandaloneJson(content: string) {
+  const trimmed = content.trim();
+  const isObject = trimmed.startsWith("{") && trimmed.endsWith("}");
+  const isArray = trimmed.startsWith("[") && trimmed.endsWith("]");
+
+  if (!isObject && !isArray) return null;
+
+  try {
+    const value: unknown = JSON.parse(trimmed);
+    if (value === null || typeof value !== "object") return null;
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return null;
+  }
+}
+
 function createMarkdownComponents(variant: MarkdownMessageProps["variant"]): Components {
   const document = variant === "document";
 
@@ -154,6 +170,16 @@ export function MarkdownMessage({
   children,
   variant = "chat",
 }: MarkdownMessageProps) {
+  const formattedJson = formatStandaloneJson(children);
+
+  if (formattedJson) {
+    return (
+      <pre className="my-4 max-w-full overflow-x-auto rounded-lg bg-muted p-4 text-sm leading-6">
+        <code className="font-mono">{formattedJson}</code>
+      </pre>
+    );
+  }
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}

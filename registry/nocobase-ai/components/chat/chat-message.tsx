@@ -64,8 +64,8 @@ function ChatMessageComponent({
   const workContext = message.metadata?.workContext ?? [];
   if (isUser) {
     return (
-      <article className="group/message flex flex-col items-end px-4 py-2 sm:px-5">
-        <div className="flex max-w-[80%] flex-col items-end">
+      <article className="group/message flex min-w-0 max-w-full flex-col items-end px-4 py-2 sm:px-5">
+        <div className="flex min-w-0 max-w-[80%] flex-col items-end">
           {workContext.length ? (
             <div className="mb-1.5 flex max-w-full flex-wrap justify-end gap-1.5">
               {workContext.map((item, index) => (
@@ -85,8 +85,10 @@ function ChatMessageComponent({
             </div>
           ) : null}
           {text ? (
-            <div className="rounded-2xl rounded-br-md bg-secondary px-4 py-2.5 text-sm leading-6 text-secondary-foreground">
-              <div className="whitespace-pre-wrap break-words">{text}</div>
+            <div className="min-w-0 max-w-full rounded-2xl rounded-br-md bg-secondary px-4 py-2.5 text-sm leading-6 text-secondary-foreground">
+              <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">
+                {text}
+              </div>
             </div>
           ) : null}
         </div>
@@ -150,7 +152,7 @@ function ChatMessageComponent({
   );
 
   return (
-    <article className="group/message px-4 py-2 sm:px-5">
+    <article className="group/message min-w-0 max-w-full px-4 py-2 sm:px-5">
       <div className="min-w-0 space-y-4">
         {assistantParts.map((part, index) => {
           if (part.type === "reasoning") {
@@ -167,7 +169,7 @@ function ChatMessageComponent({
             return (
               <div
                 key={`text-${index}`}
-                className="ai-markdown text-sm leading-6 text-foreground"
+                className="ai-markdown min-w-0 max-w-full [overflow-wrap:anywhere] text-sm leading-6 text-foreground"
               >
                 <MarkdownMessage>{part.text}</MarkdownMessage>
               </div>

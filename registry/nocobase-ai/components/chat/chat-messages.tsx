@@ -94,12 +94,17 @@ export function AIChatMessageList({
   }, [atBottom, messages, status]);
 
   return (
-    <div className={cn("relative min-h-0 flex-1 bg-background", className)}>
+    <div
+      className={cn(
+        "relative min-h-0 min-w-0 flex-1 overflow-hidden bg-background",
+        className
+      )}
+    >
       <div
         ref={viewportRef}
         role="log"
         aria-live="polite"
-        className="absolute inset-0 overflow-y-auto overscroll-contain"
+        className="absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain"
         onScroll={(event) => {
           const element = event.currentTarget;
           setAtBottom(
@@ -112,7 +117,7 @@ export function AIChatMessageList({
         ) : (
           <>
             {messages.length ? (
-              <div className="mx-auto w-full max-w-3xl py-2">
+              <div className="mx-auto min-w-0 w-full max-w-3xl py-2">
                 {messages.map((message) => (
                   <ChatMessage
                     key={message.id}

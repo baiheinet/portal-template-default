@@ -45,7 +45,7 @@ export function SubAgentConversation({
   const interactionPending = status === "streaming" || status === "submitted";
 
   return (
-    <section className="rounded-xl border border-dashed bg-muted/15">
+    <section className="min-w-0 max-w-full rounded-xl border border-dashed bg-muted/15">
       <Button
         type="button"
         variant="ghost"
@@ -67,7 +67,7 @@ export function SubAgentConversation({
         </span>
       </Button>
       {expanded ? (
-        <div className="space-y-3 border-t border-dashed px-3 py-3">
+        <div className="min-w-0 space-y-3 border-t border-dashed px-3 py-3">
           {messages.flatMap((message) =>
             message.parts.map((part, index) => {
               if (part.type === "reasoning") {
@@ -84,7 +84,7 @@ export function SubAgentConversation({
                 return (
                   <div
                     key={`${message.id}-text-${index}`}
-                    className="ai-markdown text-sm leading-6 text-foreground"
+                    className="ai-markdown min-w-0 max-w-full [overflow-wrap:anywhere] text-sm leading-6 text-foreground"
                   >
                     <MarkdownMessage>{part.text}</MarkdownMessage>
                   </div>
