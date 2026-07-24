@@ -9,12 +9,15 @@ const server = await createServer({
 
 try {
   await server.ssrLoadModule("/src/locales/index.ts");
-  const { i18n, registerLocaleResources, translate } =
-    await server.ssrLoadModule("/registry/nocobase-i18n/runtime.ts");
-  const { resolveTranslatableText, setTranslationResolver } =
+  const {
+    applySystemLocale,
+    getCurrentLocale,
+    i18n,
+    registerLocaleResources,
+    translate,
+  } = await server.ssrLoadModule("/src/providers/i18n/runtime.ts");
+  const { resolveTranslatableText } =
     await server.ssrLoadModule("/src/lib/i18n.ts");
-
-  setTranslationResolver(translate);
 
   await i18n.changeLanguage("en-US");
   assert.equal(translate("resources.users", { ns: "app" }, "Users"), "Users");
@@ -35,6 +38,12 @@ try {
     translate("title", { ns: "example-feature" }, "Example"),
     "示例"
   );
+
+  await applySystemLocale({
+    appLang: "en-US",
+    enabledLanguages: ["en-US", "zh-CN"],
+  });
+  assert.equal(getCurrentLocale(), "en-US");
 
   console.log("NocoBase i18n regression tests passed");
 } finally {

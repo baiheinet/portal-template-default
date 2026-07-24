@@ -4,8 +4,8 @@ import { Languages } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { Route } from "react-router";
 import { LanguageUserMenuItems } from "./components";
-import { i18nProvider } from "./i18n-provider";
-import { LocalePreferenceProvider } from "./provider";
+import "./locales";
+import { NocoBaseI18nBootstrap } from "./provider";
 
 const I18nDemoPage = lazy(() =>
   import("./demo").then((module) => ({ default: module.I18nDemoPage }))
@@ -13,8 +13,7 @@ const I18nDemoPage = lazy(() =>
 
 const nocobaseI18nExtension: AppExtension = {
   id: "nocobase-i18n",
-  i18nProvider,
-  Provider: LocalePreferenceProvider,
+  Provider: NocoBaseI18nBootstrap,
   UserMenuItems: LanguageUserMenuItems,
   resources: [
     {

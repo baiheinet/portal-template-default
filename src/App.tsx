@@ -27,7 +27,6 @@ import { TooltipProvider } from "./components/ui/tooltip";
 import { BrandLogo } from "./components/app-shell/brand";
 import {
   AppExtensionProviders,
-  extensionI18nProvider,
   extensionResources,
   extensionRouteElements,
 } from "./app/extensions";
@@ -38,6 +37,8 @@ import { AclBootstrap } from "./components/access-control/acl-bootstrap";
 import { ResourceAccessGuard } from "./components/access-control/resource-access-guard";
 import { NavigateToAccessibleResource } from "./components/access-control/navigate-to-accessible-resource";
 import { UsersRound } from "lucide-react";
+import { i18nProvider } from "./providers/i18n";
+import { SystemSettingsProvider } from "./providers/system-settings";
 
 const coreResources: ResourceProps[] = [
   {
@@ -72,24 +73,25 @@ function App() {
     <BrowserRouter basename={basename || undefined}>
       <ThemeProvider>
         <TooltipProvider>
-          <Refine
-            dataProvider={dataProvider}
-            notificationProvider={useNotificationProvider()}
-            routerProvider={routerProvider}
-            authProvider={authProvider}
-            accessControlProvider={accessControlProvider}
-            i18nProvider={extensionI18nProvider}
-            resources={[...coreResources, ...extensionResources]}
-            options={{
-              syncWithLocation: true,
-              warnWhenUnsavedChanges: true,
-              disableTelemetry: true,
-              title: {
-                text: "NocoBase",
-                icon: <BrandLogo className="size-14 rounded-2xl" />,
-              },
-            }}
-          >
+          <SystemSettingsProvider>
+            <Refine
+              dataProvider={dataProvider}
+              notificationProvider={useNotificationProvider()}
+              routerProvider={routerProvider}
+              authProvider={authProvider}
+              accessControlProvider={accessControlProvider}
+              i18nProvider={i18nProvider}
+              resources={[...coreResources, ...extensionResources]}
+              options={{
+                syncWithLocation: true,
+                warnWhenUnsavedChanges: true,
+                disableTelemetry: true,
+                title: {
+                  text: "NocoBase",
+                  icon: <BrandLogo className="size-14 rounded-2xl" />,
+                },
+              }}
+            >
             <Routes>
               <Route
                 element={
@@ -186,7 +188,8 @@ function App() {
             <Toaster />
             <UnsavedChangesNotifier />
             <DocumentTitleHandler appName="NocoBase" />
-          </Refine>
+            </Refine>
+          </SystemSettingsProvider>
         </TooltipProvider>
       </ThemeProvider>
     </BrowserRouter>

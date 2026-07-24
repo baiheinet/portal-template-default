@@ -3,6 +3,7 @@ import { createInstance, type TOptions } from "i18next";
 import {
   getTranslationResources,
   registerTranslationResources,
+  setTranslationResolver,
   subscribeTranslationResources,
   type TranslationOptions,
 } from "@/lib/i18n";
@@ -14,14 +15,22 @@ import {
   getLocaleLabel,
   registerLocale,
   resolveSupportedLocale,
+  setEnabledLocales,
 } from "./locale-store";
-import enUS from "./locales/en-US";
-import zhCN from "./locales/zh-CN";
 
 export type LocaleResources = Record<
   string,
   Record<string, string | number | boolean>
 >;
+
+export type LocaleSystemSettings = {
+  appLang?: string | null;
+  enabledLanguages?: string[] | null;
+};
+
+type LocalePersistence = (locale: string) => void | Promise<void>;
+
+let localePersistence: LocalePersistence | undefined;
 
 export const i18n = createInstance();
 
@@ -35,10 +44,6 @@ void i18n.init({
   initImmediate: false,
   interpolation: {
     escapeValue: false,
-  },
-  resources: {
-    "en-US": enUS,
-    "zh-CN": zhCN,
   },
 });
 
@@ -56,7 +61,6 @@ function addLocaleResources(namespace: string, resources: LocaleResources) {
 getTranslationResources().forEach(([namespace, resources]) =>
   addLocaleResources(namespace, resources)
 );
-
 subscribeTranslationResources(addLocaleResources);
 
 export function getCurrentLocale() {
@@ -94,18 +98,60 @@ export function applyDocumentLocale(locale = getCurrentLocale()) {
   document.documentElement.dir = direction;
 }
 
+function resolveSystemLocale(settings?: LocaleSystemSettings) {
+  const enabledLanguages = Array.isArray(settings?.enabledLanguages)
+    ? settings.enabledLanguages.filter(Boolean)
+    : [];
+  const storedLocale = nocobaseClient.getStoredLocale();
+
+  if (
+    storedLocale &&
+    (!enabledLanguages.length || enabledLanguages.includes(storedLocale))
+  ) {
+    return resolveSupportedLocale(storedLocale);
+  }
+
+  const defaultLocale =
+    settings?.appLang || enabledLanguages[0] || DEFAULT_LOCALE;
+  return resolveSupportedLocale(defaultLocale);
+}
+
+export async function applySystemLocale(settings?: LocaleSystemSettings) {
+  const enabledLanguages = Array.isArray(settings?.enabledLanguages)
+    ? settings.enabledLanguages.filter(Boolean)
+    : [];
+  if (enabledLanguages.length) setEnabledLocales(enabledLanguages);
+
+  const storedLocale = nocobaseClient.getStoredLocale();
+  if (
+    storedLocale &&
+    enabledLanguages.length &&
+    !enabledLanguages.includes(storedLocale)
+  ) {
+    nocobaseClient.setLocale(null);
+  }
+
+  const locale = resolveSystemLocale(settings);
+  nocobaseClient.setRuntimeLocale(locale);
+  await i18n.changeLanguage(locale);
+  applyDocumentLocale(locale);
+  return locale;
+}
+
+export function setLocalePersistence(persistence?: LocalePersistence) {
+  localePersistence = persistence;
+  return () => {
+    if (localePersistence === persistence) localePersistence = undefined;
+  };
+}
+
 export async function changeLocale(locale: string) {
   const nextLocale = resolveSupportedLocale(locale);
 
-  if (nocobaseClient.getToken()) {
-    try {
-      await nocobaseClient.action("users", "updateLang", {
-        method: "POST",
-        body: { appLang: nextLocale },
-      });
-    } catch (error) {
-      console.warn("Unable to persist the NocoBase language preference", error);
-    }
+  try {
+    await localePersistence?.(nextLocale);
+  } catch (error) {
+    console.warn("Unable to persist the language preference", error);
   }
 
   nocobaseClient.setLocale(nextLocale);
@@ -115,4 +161,5 @@ export async function changeLocale(locale: string) {
   if (typeof window !== "undefined") window.location.reload();
 }
 
+setTranslationResolver(translate);
 applyDocumentLocale();

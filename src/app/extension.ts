@@ -1,4 +1,4 @@
-import type { I18nProvider, ResourceProps } from "@refinedev/core";
+import type { ResourceProps } from "@refinedev/core";
 import type { ComponentType, PropsWithChildren, ReactElement } from "react";
 
 export type AppExtension = {
@@ -7,5 +7,4 @@ export type AppExtension = {
   routes?: ReactElement;
   Provider?: ComponentType<PropsWithChildren>;
   UserMenuItems?: ComponentType;
-  i18nProvider?: I18nProvider;
 };

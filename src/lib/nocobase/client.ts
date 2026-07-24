@@ -58,6 +58,7 @@ const unwrapPayload = (
 
 export class NocoBaseClient {
   private readonly apiOrigin?: string;
+  private runtimeLocale?: string;
 
   constructor(
     private readonly apiUrl = API_URL,
@@ -117,13 +118,17 @@ export class NocoBaseClient {
   }
 
   getLocale() {
-    return this.getStoredLocale() ?? getBrowserLocale();
+    return this.getStoredLocale() ?? this.runtimeLocale ?? getBrowserLocale();
   }
 
   setLocale(locale?: string | null) {
     if (typeof localStorage === "undefined") return;
     if (locale) localStorage.setItem(NOCOBASE_LOCALE_KEY, locale);
     else localStorage.removeItem(NOCOBASE_LOCALE_KEY);
+  }
+
+  setRuntimeLocale(locale?: string | null) {
+    this.runtimeLocale = locale || undefined;
   }
 
   buildUrl(endpoint: string, query?: Record<string, QueryValue>) {

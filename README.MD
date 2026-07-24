@@ -68,11 +68,10 @@ pnpm registry:install
 This repository authors optional NocoBase integration entries. Internationalization
 is delivered as one cohesive Registry entry:
 
-- `i18n` provides frontend-owned UI resources, selected server-generated
-  namespaces such as `lm-collections`, the application translation provider,
-  locale persistence, `X-Locale` synchronization, legacy `{{t(...)}}`
-  compatibility, the language switcher, and the lazy-loaded showcase with its
-  prompt generator.
+- `i18n` extends the Starter's built-in translation provider and shared System
+  Settings bootstrap with selected server-generated namespaces such as
+  `lm-collections`, user locale persistence, the language switcher, and the
+  lazy-loaded showcase with its prompt generator.
 
 The AI integration is available through four incremental entries:
 
@@ -107,6 +106,12 @@ complete item through Shadcn:
 
 ```bash
 pnpm dlx shadcn@latest add @nocobase/ai
+```
+
+Install the optional NocoBase i18n integration with:
+
+```bash
+pnpm dlx shadcn@latest add @nocobase/i18n
 ```
 
 Shadcn does not keep a Registry item lock or merge local changes. Re-running

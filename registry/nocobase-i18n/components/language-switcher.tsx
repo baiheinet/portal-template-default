@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useEnabledLocales } from "../locale-store";
+import { useEnabledLocales } from "@/providers/i18n";
 
 export type LanguageSwitcherProps = {
   className?: string;

@@ -34,10 +34,9 @@
       "name": "i18n",
       "type": "registry:block",
       "title": "NocoBase i18n",
-      "description": "Optional hybrid internationalization with frontend-owned UI resources, selected NocoBase dynamic namespaces, X-Locale synchronization, a reusable language switcher, and an integrated showcase.",
+      "description": "Optional NocoBase server-language resources, user preference persistence, reusable language controls, and an integrated showcase for the Starter's built-in i18n runtime.",
       "dependencies": [
         "@refinedev/core@^5.0.8",
-        "i18next@^25.3.2",
         "lucide-react@^0.487.0",
         "react-router@^7.0.2"
       ],
@@ -51,7 +50,7 @@
         "select",
         "textarea"
       ],
-      "docs": "Requires a compatible NocoBase Starter with the generic AppExtension i18nProvider and UserMenuItems host fields. Starter and Registry translations stay local; app:getLang is used only to merge registered dynamic namespaces such as lm-collections. The integrated Demo route documents the complete usage model.",
+      "docs": "Requires a compatible NocoBase Starter with the built-in i18n provider, shared System Settings bootstrap, and AppExtension Provider/UserMenuItems host fields. The Registry reuses systemSettings:get data and calls app:getLang only for registered dynamic namespaces such as lm-collections.",
       "source": {
         "root": "registry/nocobase-i18n",
         "target": "src/extensions/nocobase-i18n",

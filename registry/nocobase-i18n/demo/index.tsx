@@ -37,7 +37,7 @@ export function I18nDemoPage() {
           {t(
             "demo.description",
             { ns: "nocobase-i18n" },
-            "An optional hybrid locale runtime with frontend UI resources and selected NocoBase dynamic namespaces."
+            "Optional NocoBase server translations and language controls built on the Starter's internationalization runtime."
           )}
         </p>
       </header>
@@ -98,7 +98,7 @@ export function I18nDemoPage() {
           description={t(
             "demo.frontend.description",
             { ns: "nocobase-i18n" },
-            "Starter and Registry components keep their interface messages in local resource files."
+            "The Starter provides the runtime while application and Registry components keep their messages in local resource files."
           )}
         >
           <div className="divide-y rounded-lg border">

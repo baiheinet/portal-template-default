@@ -1,18 +1,16 @@
 import { nocobaseClient } from "@/lib/nocobase/client";
 import {
-  getLocaleDefinitions,
+  type LocaleSystemSettings,
+  applyDocumentLocale,
+  getCurrentLocale,
+  i18n,
   registerLocale,
   setEnabledLocales,
-} from "./locale-store";
-import { applyDocumentLocale, getCurrentLocale, i18n } from "./runtime";
+} from "@/providers/i18n";
 
 type ServerLanguagePayload = {
   lang?: string;
   resources?: Record<string, Record<string, string>>;
-};
-
-type SystemSettingsPayload = {
-  enabledLanguages?: string[];
 };
 
 const serverResourceNamespaces = new Set(["lm-collections"]);
@@ -119,37 +117,23 @@ export function getServerResourceNamespaces() {
   return [...serverResourceNamespaces];
 }
 
-export function loadServerLocaleResources() {
+export function loadServerLocaleResources(settings?: LocaleSystemSettings) {
   if (serverResourcesPromise) return serverResourcesPromise;
 
   bootstrapStarted = true;
   const requestedLocale = nocobaseClient.getStoredLocale();
   const initialNamespaces = [...serverResourceNamespaces];
-  const systemSettingsPromise = nocobaseClient
-    .action<SystemSettingsPayload>("systemSettings", "get", {
-      method: "GET",
-      includeRole: false,
-      withAclMeta: false,
-    })
-    .catch((error) => {
-      console.warn("Unable to load enabled NocoBase languages", error);
-      return undefined;
-    })
-    .then((systemSettings) => {
-      const configuredLocales = Array.isArray(systemSettings?.enabledLanguages)
-        ? systemSettings.enabledLanguages
-        : [];
-      if (configuredLocales.length) setEnabledLocales(configuredLocales);
-      return systemSettings;
-    });
+  const configuredLocales = Array.isArray(settings?.enabledLanguages)
+    ? settings.enabledLanguages
+    : [];
+  if (configuredLocales.length) setEnabledLocales(configuredLocales);
   const languagePromise = requestServerResources(
     initialNamespaces,
     requestedLocale
   );
 
-  serverResourcesPromise = Promise.all([systemSettingsPromise, languagePromise])
-    .then(async ([systemSettings, payload]) => {
-      const configuredLocales = systemSettings?.enabledLanguages ?? [];
+  serverResourcesPromise = languagePromise
+    .then(async (payload) => {
       const serverLocale = payload.lang;
 
       if (!configuredLocales.length && serverLocale) {
@@ -173,9 +157,7 @@ export function loadServerLocaleResources() {
     })
     .catch((error) => {
       bootstrapComplete = true;
-      if (!getLocaleDefinitions().length) {
-        setEnabledLocales([getCurrentLocale()]);
-      }
+      if (!configuredLocales.length) setEnabledLocales([getCurrentLocale()]);
       serverResourcesPromise = undefined;
       throw error;
     });

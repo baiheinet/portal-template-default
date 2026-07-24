@@ -1,43 +1,37 @@
 # NocoBase i18n
 
-Optional frontend-owned internationalization for the NocoBase Admin Starter.
+Optional NocoBase server-language integration and language controls for the
+NocoBase Admin Starter.
 
-The Registry connects i18next to the application translation provider, persists
-the selected locale through the Starter's shared NocoBase client, sends it as
-`X-Locale`, and adds a reusable language switcher to the signed-in user menu.
-Its integrated Demo route shows the complete configuration model without
-requiring a second Registry item.
+The Starter owns the Refine i18n provider, local i18next runtime, application
+resources, locale selection, and the shared `systemSettings:get` bootstrap.
+This Registry reuses those foundations and adds only the NocoBase-specific
+remote capabilities:
 
-Starter and Registry UI resources remain frontend-owned. At startup the runtime
-reads `enabledLanguages` from `systemSettings:get` and merges only registered
-dynamic NocoBase namespaces from `app:getLang`; `lm-collections` is registered
-by default so collection and field translations remain compatible.
+- load registered dynamic namespaces from `app:getLang`;
+- persist a signed-in user's selected language through `users:updateLang`;
+- expose reusable page and user-menu language switchers;
+- provide an integrated Demo and Prompt generator.
+
+When this Registry is not installed, the Starter still uses the system default
+language and all local translations normally. It does not request
+`app:getLang`. When installed, the Registry reads the already-cached system
+settings and requests only registered server namespaces. `lm-collections` is
+registered by default for collection and field metadata.
 
 Application-owned React translations belong in `src/locales`, outside the
-installed Registry directory. Register them through the Starter-level
-`registerTranslationResources` helper so the application remains buildable when
-the optional i18n Registry is not installed. When this Registry is present, it
-consumes both resources registered before startup and resources added later by
-lazy features.
-
-On NocoBase versions that support filtered language resources, the request uses
-`app:getLang?ns=lm-collections,...`. Older servers ignore the query parameter;
-the client still merges only registered namespaces, so the integration remains
-backward compatible.
-
-Other installed components can register their own namespace without changing
-the runtime:
+installed Registry directory:
 
 ```ts
-import { registerLocaleResources } from "@/extensions/nocobase-i18n";
+import { registerLocaleResources } from "@/providers/i18n";
 
-registerLocaleResources("my-extension", {
+registerLocaleResources("my-feature", {
   "en-US": { title: "Orders" },
   "zh-CN": { title: "订单" },
 });
 ```
 
-If a component relies on another server-generated namespace, opt in explicitly:
+Other installed components can opt into another server-generated namespace:
 
 ```ts
 import { registerServerResourceNamespace } from "@/extensions/nocobase-i18n";
@@ -45,9 +39,6 @@ import { registerServerResourceNamespace } from "@/extensions/nocobase-i18n";
 registerServerResourceNamespace("my-dynamic-namespace");
 ```
 
-Namespaces registered after application startup are loaded incrementally, so
-lazy Registry components do not need to participate in the initial request.
-
-Use the application's `useTranslate` hook in React components. Existing exact
-NocoBase-style expressions such as `{{t("Orders")}}` and expressions with a
-string namespace are resolved through the Starter compatibility helper.
+Namespaces registered after startup are loaded incrementally. Existing exact
+NocoBase expressions such as `{{t("Orders")}}` remain supported by the
+Starter's translation compatibility helper.
