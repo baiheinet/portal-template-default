@@ -18,3 +18,16 @@ export type UserFormValues = {
   phone: string;
   password?: string;
 };
+
+export type RoleRecord = Role & {
+  id?: string | number;
+  description?: string;
+  default?: boolean;
+  hidden?: boolean;
+  allowConfigure?: boolean;
+  strategy?: {
+    actions?: string[];
+  };
+  createdAt?: string;
+  updatedAt?: string;
+};

@@ -11,12 +11,13 @@ import { cn } from "@/lib/utils";
 
 type ListViewProps = PropsWithChildren<{
   className?: string;
+  resource?: string;
 }>;
 
-export function ListView({ children, className }: ListViewProps) {
+export function ListView({ children, className, resource }: ListViewProps) {
   return (
     <div className={cn("flex flex-col", "gap-6", className)}>
-      <ListViewHeader />
+      <ListViewHeader resource={resource} />
       {children}
     </div>
   );

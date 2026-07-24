@@ -1,38 +1,78 @@
-import {
-  type HttpError,
-  useResourceParams,
-  useTranslate,
-} from "@refinedev/core";
+import { type HttpError, useTranslate } from "@refinedev/core";
 import { useForm } from "@refinedev/react-hook-form";
 import { useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useParams } from "react-router";
 
-import { EditView } from "@/components/resources/views/edit-view";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 import { useAIForm, type AIFormField } from "@/extensions/nocobase-ai";
+import {
+  RouteDrawer,
+  RouteDrawerFooter,
+  useRefineUnsavedChangesGuard,
+  useRouteSurfaceClose,
+} from "@/extensions/nocobase-route-surfaces";
 import {
   applyAIUserFormValues,
   getAIUserFormFields,
   getAIUserFormValues,
 } from "./form-context";
 import { UserFormFields } from "./form-fields";
+import { getUserShowPath, userRoutes } from "./routes";
 import type { UserFormValues, UserRecord } from "./types";
 
-export const UserEdit = () => {
+export const UserEdit = ({
+  returnTo = "list",
+}: {
+  returnTo?: "list" | "show";
+}) => {
   const translate = useTranslate();
-  const navigate = useNavigate();
-  const { id } = useResourceParams();
+  const { id } = useParams<{ id: string }>();
+  const closeTo =
+    returnTo === "show" && id ? getUserShowPath(id) : userRoutes.list;
+  const { beforeClose, confirmation } = useRefineUnsavedChangesGuard();
+
+  return (
+    <>
+      <RouteDrawer
+        title={translate(
+          "users.drawer.edit.title",
+          { ns: "app" },
+          "Edit user"
+        )}
+        description={translate(
+          "users.drawer.edit.description",
+          { ns: "app" },
+          "Update this user's identity and contact information."
+        )}
+        closeLabel={translate("buttons.close", "Close")}
+        closeTo={closeTo}
+        beforeClose={beforeClose}
+      >
+        <UserEditForm id={id} />
+      </RouteDrawer>
+      {confirmation}
+    </>
+  );
+};
+
+function UserEditForm({ id }: { id?: string }) {
+  const translate = useTranslate();
+  const close = useRouteSurfaceClose();
   const {
     refineCore: { onFinish },
     ...form
   } = useForm<UserRecord, HttpError, UserFormValues>({
     refineCoreProps: {
-      redirect: "list",
+      action: "edit",
+      resource: "users",
+      id,
+      redirect: false,
+      onMutationSuccess: () => {
+        void close({ skipBeforeClose: true });
+      },
     },
   });
-
   const aiFields = useMemo<AIFormField[]>(
     () => getAIUserFormFields(translate),
     [translate]
@@ -46,47 +86,38 @@ export const UserEdit = () => {
   });
 
   return (
-    <EditView>
-      <Card className="max-w-3xl">
-        <CardContent>
-          <Form {...form}>
-            <form
-              ref={aiFormRef}
-              onSubmit={form.handleSubmit((values) => onFinish(values))}
-              className="resource-form"
-            >
-              <UserFormFields form={form} translate={translate} />
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="submit"
-                  {...form.saveButtonProps}
-                  disabled={form.formState.isSubmitting}
-                >
-                  {form.formState.isSubmitting
-                    ? translate(
-                        "users.form.edit.submitting",
-                        { ns: "app" },
-                        "Saving..."
-                      )
-                    : translate(
-                        "users.form.edit.submit",
-                        { ns: "app" },
-                        "Save changes"
-                      )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate(-1)}
-                >
-                  {translate("users.form.cancel", { ns: "app" }, "Cancel")}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-    </EditView>
+    <Form {...form}>
+      <form
+        ref={aiFormRef}
+        onSubmit={form.handleSubmit((values) => onFinish(values))}
+        className="flex min-h-0 flex-1 flex-col"
+      >
+        <div className="resource-form min-h-0 flex-1 overflow-y-auto px-5 py-5">
+          <UserFormFields form={form} translate={translate} />
+        </div>
+        <RouteDrawerFooter className="flex-row justify-end">
+          <Button type="button" variant="outline" onClick={() => void close()}>
+            {translate("users.form.cancel", { ns: "app" }, "Cancel")}
+          </Button>
+          <Button
+            type="submit"
+            {...form.saveButtonProps}
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting
+              ? translate(
+                  "users.form.edit.submitting",
+                  { ns: "app" },
+                  "Saving..."
+                )
+              : translate(
+                  "users.form.edit.submit",
+                  { ns: "app" },
+                  "Save changes"
+                )}
+          </Button>
+        </RouteDrawerFooter>
+      </form>
+    </Form>
   );
-};
+}

@@ -218,7 +218,7 @@ function SidebarDropdownItem({
   selectedKey,
   Link,
 }: MenuItemProps & { Link: ReturnType<typeof useLink> }) {
-  const isSelected = item.key === selectedKey;
+  const isSelected = isTreeItemSelected(item, selectedKey);
   const displayName = useMenuItemLabel(item);
 
   return (
@@ -239,7 +239,7 @@ function SidebarDropdownItem({
 }
 
 function SidebarItemLink({ item, selectedKey }: MenuItemProps) {
-  const isSelected = item.key === selectedKey;
+  const isSelected = isTreeItemSelected(item, selectedKey);
 
   return <SidebarButton item={item} isSelected={isSelected} asLink={true} />;
 }

@@ -5,7 +5,14 @@ import routerProvider, {
   CatchAllNavigate,
   UnsavedChangesNotifier,
 } from "@refinedev/react-router";
-import { UserCreate, UserEdit, UserList, UserShow } from "./pages/users";
+import {
+  UserCreate,
+  UserEdit,
+  UserResourceLayout,
+  RoleDetailRoute,
+  userRoutes,
+  UserShow,
+} from "./pages/users";
 import { dataProvider } from "./providers/data";
 import { Login } from "./pages/login";
 import { Register } from "./pages/register";
@@ -35,10 +42,10 @@ import { UsersRound } from "lucide-react";
 const coreResources: ResourceProps[] = [
   {
     name: "users",
-    list: "/users",
-    create: "/users/create",
-    edit: "/users/edit/:id",
-    show: "/users/show/:id",
+    list: userRoutes.list,
+    create: userRoutes.create,
+    edit: userRoutes.edit,
+    show: userRoutes.show,
     meta: {
       label: "Users",
       singularLabel: "User",
@@ -101,15 +108,10 @@ function App() {
                 }
               >
                 <Route index element={<NavigateToAccessibleResource />} />
-                <Route path="/users">
-                  <Route
-                    index
-                    element={
-                      <ResourceAccessGuard resource="users" action="list">
-                        <UserList />
-                      </ResourceAccessGuard>
-                    }
-                  />
+                <Route
+                  path="/users"
+                  element={<UserResourceLayout />}
+                >
                   <Route
                     path="create"
                     element={
@@ -127,13 +129,38 @@ function App() {
                     }
                   />
                   <Route
+                    path="roles/:roleName"
+                    element={
+                      <ResourceAccessGuard resource="roles" action="show">
+                        <RoleDetailRoute returnTo="list" />
+                      </ResourceAccessGuard>
+                    }
+                  />
+                  <Route
                     path="show/:id"
                     element={
                       <ResourceAccessGuard resource="users" action="show">
                         <UserShow />
                       </ResourceAccessGuard>
                     }
-                  />
+                  >
+                    <Route
+                      path="edit"
+                      element={
+                        <ResourceAccessGuard resource="users" action="edit">
+                          <UserEdit returnTo="show" />
+                        </ResourceAccessGuard>
+                      }
+                    />
+                    <Route
+                      path="roles/:roleName"
+                      element={
+                        <ResourceAccessGuard resource="roles" action="show">
+                          <RoleDetailRoute returnTo="show" />
+                        </ResourceAccessGuard>
+                      }
+                    />
+                  </Route>
                 </Route>
                 {extensionRouteElements}
                 <Route path="*" element={<ErrorComponent />} />

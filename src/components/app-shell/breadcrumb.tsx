@@ -3,9 +3,12 @@
 import { Fragment, useMemo } from "react";
 import { Home } from "lucide-react";
 import {
+  type IResourceItem,
   matchResourceFromRoute,
   useBreadcrumb,
+  useGetToPath,
   useLink,
+  useParsed,
   useResourceParams,
   useTranslate,
   useUserFriendlyName,
@@ -24,9 +27,42 @@ export function Breadcrumb() {
   const Link = useLink();
   const { breadcrumbs } = useBreadcrumb();
   const { resources } = useResourceParams();
+  const { pathname } = useParsed();
+  const getToPath = useGetToPath();
   const translate = useTranslate();
   const getUserFriendlyName = useUserFriendlyName();
   const rootRouteResource = matchResourceFromRoute("/", resources);
+  const resolvedBreadcrumbs = useMemo(() => {
+    if (breadcrumbs.length > 0) return breadcrumbs;
+
+    const closestMatch = findClosestRouteMatch(pathname, resources);
+    if (!closestMatch.resource) return breadcrumbs;
+
+    const items: Array<{ label: string; href?: string }> = [
+      {
+        label:
+          closestMatch.resource.meta?.label ?? closestMatch.resource.name,
+        href: getToPath({ resource: closestMatch.resource, action: "list" }),
+      },
+    ];
+    const nestedAction = getNestedRouteAction(
+      pathname,
+      closestMatch.matchedSegmentCount
+    ) ??
+      (closestMatch.action && closestMatch.action !== "list"
+        ? closestMatch.action
+        : undefined);
+    if (nestedAction) {
+      items.push({
+        label: translate(
+          `buttons.${nestedAction}`,
+          nestedAction.charAt(0).toUpperCase() + nestedAction.slice(1)
+        ),
+      });
+    }
+
+    return items;
+  }, [breadcrumbs, getToPath, pathname, resources, translate]);
 
   const breadCrumbItems = useMemo(() => {
     const list: {
@@ -47,7 +83,7 @@ export function Breadcrumb() {
       ),
     });
 
-    for (const { label, href } of breadcrumbs) {
+    for (const { label, href } of resolvedBreadcrumbs) {
       const matchingResource = resources.find((resource) => {
         const metaLabel = resource.meta?.label;
         return (
@@ -80,9 +116,9 @@ export function Breadcrumb() {
 
     return list;
   }, [
-    breadcrumbs,
     getUserFriendlyName,
     Link,
+    resolvedBreadcrumbs,
     resources,
     rootRouteResource,
     translate,
@@ -112,6 +148,35 @@ export function Breadcrumb() {
       </ShadcnBreadcrumbList>
     </ShadcnBreadcrumb>
   );
+}
+
+function findClosestRouteMatch(
+  pathname: string | undefined,
+  resources: IResourceItem[]
+) {
+  const segments = pathname?.split("/").filter(Boolean) ?? [];
+
+  for (let length = segments.length; length >= 0; length -= 1) {
+    const route = `/${segments.slice(0, length).join("/")}`;
+    const match = matchResourceFromRoute(route, resources);
+    if (match.resource) {
+      return { ...match, matchedSegmentCount: length };
+    }
+  }
+
+  return { resource: undefined, matchedSegmentCount: 0 };
+}
+
+function getNestedRouteAction(
+  pathname: string | undefined,
+  matchedSegmentCount: number
+) {
+  const segments = pathname?.split("/").filter(Boolean) ?? [];
+  const action = segments[matchedSegmentCount];
+
+  return action && ["create", "edit", "show", "clone"].includes(action)
+    ? action
+    : undefined;
 }
 
 Breadcrumb.displayName = "Breadcrumb";

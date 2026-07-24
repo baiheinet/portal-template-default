@@ -5,7 +5,13 @@ export const starter = {
   "buttons.delete": "Delete",
   "buttons.refresh": "Refresh",
   "buttons.cancel": "Cancel",
+  "buttons.close": "Close",
   "buttons.confirm": "Are you sure?",
+  "unsavedChanges.title": "Discard unsaved changes?",
+  "unsavedChanges.description":
+    "Your changes have not been saved. Leaving now will discard them.",
+  "unsavedChanges.stay": "Keep editing",
+  "unsavedChanges.leave": "Discard changes",
   "views.create.title": "Create {{resource}}",
   "views.create.description":
     "Add a new {{resource}} to your NocoBase workspace.",
@@ -52,6 +58,14 @@ export const app = {
   "users.actions.view": "View user",
   "users.actions.edit": "Edit user",
   "users.actions.delete": "Delete user",
+  "users.drawer.create.title": "Create user",
+  "users.drawer.create.description":
+    "Add a user who can sign in to this NocoBase application.",
+  "users.drawer.edit.title": "Edit user",
+  "users.drawer.edit.description":
+    "Update this user's identity and contact information.",
+  "users.drawer.show.description":
+    "Review this user's identity, contact information, and roles.",
   "users.form.create.submit": "Create user",
   "users.form.create.submitting": "Creating...",
   "users.form.edit.submit": "Save changes",
@@ -75,8 +89,29 @@ export const app = {
   "users.detail.timestamps": "Timestamps",
   "users.detail.noRoles": "No assigned roles",
   "users.detail.unnamed": "Unnamed user",
+  "users.detail.loadError.title": "Unable to load user",
+  "users.detail.loadError.description":
+    "The user may no longer exist, or you may not have permission to view it.",
   "users.ai.table": "Users table",
   "users.ai.detail": "User details",
   "users.ai.createForm": "Create user form",
   "users.ai.editForm": "Edit user form",
+  "common.yes": "Yes",
+  "common.no": "No",
+  "roles.drawer.description": "Review the role associated with this user.",
+  "roles.fields.name": "Name",
+  "roles.fields.title": "Title",
+  "roles.fields.description": "Description",
+  "roles.fields.default": "Default role",
+  "roles.fields.hidden": "Hidden",
+  "roles.fields.allowConfigure": "Can configure",
+  "roles.fields.createdAt": "Created at",
+  "roles.fields.updatedAt": "Updated at",
+  "roles.detail.identity": "Role identity",
+  "roles.detail.settings": "Settings",
+  "roles.detail.actions": "Allowed actions",
+  "roles.detail.timestamps": "Timestamps",
+  "roles.detail.unavailable":
+    "Additional role details are unavailable. Showing the relation data included with the user.",
+  "roles.ai.detail": "Role details",
 } as const;

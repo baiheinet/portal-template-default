@@ -1,30 +1,34 @@
 import {
   useGetLocale,
-  useResourceParams,
   useShow,
   useTranslate,
 } from "@refinedev/core";
+import { useNavigate, useOutlet, useParams } from "react-router";
+import { Pencil, RotateCw } from "lucide-react";
 
-import { ShowView } from "@/components/resources/views/show-view";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { LoadingState } from "@/components/app-shell/loading-state";
+import { EditButton } from "@/components/resources/buttons/edit";
+import { RefreshButton } from "@/components/resources/buttons/refresh";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RouteDrawer } from "@/extensions/nocobase-route-surfaces";
 import { useAIPageElementHandle } from "@/extensions/nocobase-ai";
-import { resolveTranslatableText } from "@/lib/i18n";
+import { RoleBadges } from "./role-badges";
+import { resolveRoleLabel } from "./role-utils";
+import { getUserRolePath, userRoutes } from "./routes";
 import type { UserRecord } from "./types";
 
 export const UserShow = () => {
   const translate = useTranslate();
   const getLocale = useGetLocale();
   const locale = getLocale();
-  const { id } = useResourceParams();
-  const { result: record } = useShow<UserRecord>({
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const nestedDrawer = useOutlet();
+  const { result: record, query } = useShow<UserRecord>({
+    resource: "users",
+    id,
     meta: {
       appends: ["roles"],
     },
@@ -35,10 +39,7 @@ export const UserShow = () => {
     record?.username ||
     record?.email ||
     translate("users.detail.unnamed", { ns: "app" }, "Unnamed user");
-  const roleLabels =
-    record?.roles?.map((role) =>
-      resolveTranslatableText(role.title || role.name, { ns: "starter" })
-    ) ?? [];
+  const roles = record?.roles ?? [];
   const detailContext = useAIPageElementHandle({
     id: `users-detail-${id ?? "current"}`,
     title: `${translate(
@@ -55,7 +56,10 @@ export const UserShow = () => {
         username: record?.username,
         email: record?.email,
         phone: record?.phone,
-        roles: roleLabels,
+        roles: roles.map((role) => ({
+          name: role.name,
+          title: resolveRoleLabel(role),
+        })),
         createdAt: record?.createdAt,
         updatedAt: record?.updatedAt,
       },
@@ -71,96 +75,183 @@ export const UserShow = () => {
       : "-";
 
   return (
-    <ShowView title={displayName}>
-      <Card ref={detailContext.ref} className="max-w-4xl">
-        <CardHeader>
-          <CardTitle>{displayName}</CardTitle>
-          <CardDescription>ID: {record?.id ?? "-"}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <DetailSection
-            title={translate(
-              "users.detail.identity",
-              { ns: "app" },
-              "Identity"
-            )}
-            items={[
-              [
-                translate("users.fields.nickname", { ns: "app" }, "Nickname"),
-                record?.nickname || "-",
-              ],
-              [
-                translate("users.fields.username", { ns: "app" }, "Username"),
-                record?.username || "-",
-              ],
-            ]}
-          />
-          <Separator />
-          <DetailSection
-            title={translate("users.detail.contact", { ns: "app" }, "Contact")}
-            items={[
-              [
-                translate("users.fields.email", { ns: "app" }, "Email"),
-                record?.email || "-",
-              ],
-              [
-                translate("users.fields.phone", { ns: "app" }, "Phone"),
-                record?.phone || "-",
-              ],
-            ]}
-          />
-          <Separator />
-          <section className="space-y-3">
-            <h3 className="text-sm font-medium">
-              {translate("users.detail.access", { ns: "app" }, "Access")}
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {roleLabels.length ? (
-                roleLabels.map((role, index) => (
-                  <Badge key={`${role}-${index}`} variant="secondary">
-                    {role}
-                  </Badge>
-                ))
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  {translate(
+    <RouteDrawer
+        title={
+          query.isLoading && !record ? (
+            <Skeleton className="h-6 w-40" />
+          ) : (
+            displayName
+          )
+        }
+        description={translate(
+          "users.drawer.show.description",
+          { ns: "app" },
+          "Review this user's identity, contact information, and roles."
+        )}
+        closeLabel={translate("buttons.close", "Close")}
+        closeTo={userRoutes.list}
+        nested={nestedDrawer}
+        actions={
+          record ? (
+            <>
+              <RefreshButton
+                resource="users"
+                recordItemId={record.id}
+                variant="outline"
+                size="icon-sm"
+                aria-label={translate("buttons.refresh", "Refresh")}
+                title={translate("buttons.refresh", "Refresh")}
+              >
+                <RotateCw />
+              </RefreshButton>
+              <EditButton
+                resource="users"
+                recordItemId={record.id}
+                variant="outline"
+                size="icon-sm"
+                aria-label={translate(
+                  "users.actions.edit",
+                  { ns: "app" },
+                  "Edit user"
+                )}
+                title={translate(
+                  "users.actions.edit",
+                  { ns: "app" },
+                  "Edit user"
+                )}
+                onClick={() => navigate("edit")}
+              >
+                <Pencil />
+              </EditButton>
+            </>
+          ) : null
+        }
+      >
+        <div
+          ref={detailContext.ref}
+          className="min-h-0 flex-1 overflow-y-auto px-5 py-5"
+        >
+          {query.isLoading ? (
+            <LoadingState className="min-h-64" />
+          ) : query.isError ? (
+            <Alert variant="destructive">
+              <AlertTitle>
+                {translate(
+                  "users.detail.loadError.title",
+                  { ns: "app" },
+                  "Unable to load user"
+                )}
+              </AlertTitle>
+              <AlertDescription>
+                {translate(
+                  "users.detail.loadError.description",
+                  { ns: "app" },
+                  "The user may no longer exist, or you may not have permission to view it."
+                )}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-5">
+              <DetailSection
+                title={translate(
+                  "users.detail.identity",
+                  { ns: "app" },
+                  "Identity"
+                )}
+                items={[
+                  [
+                    translate("users.fields.id", { ns: "app" }, "ID"),
+                    record?.id ?? "-",
+                  ],
+                  [
+                    translate(
+                      "users.fields.nickname",
+                      { ns: "app" },
+                      "Nickname"
+                    ),
+                    record?.nickname || "-",
+                  ],
+                  [
+                    translate(
+                      "users.fields.username",
+                      { ns: "app" },
+                      "Username"
+                    ),
+                    record?.username || "-",
+                  ],
+                ]}
+              />
+
+              <Separator />
+
+              <DetailSection
+                title={translate(
+                  "users.detail.contact",
+                  { ns: "app" },
+                  "Contact"
+                )}
+                items={[
+                  [
+                    translate("users.fields.email", { ns: "app" }, "Email"),
+                    record?.email || "-",
+                  ],
+                  [
+                    translate("users.fields.phone", { ns: "app" }, "Phone"),
+                    record?.phone || "-",
+                  ],
+                ]}
+              />
+
+              <Separator />
+
+              <section className="space-y-3">
+                <h3 className="text-sm font-medium">
+                  {translate("users.detail.access", { ns: "app" }, "Access")}
+                </h3>
+                <RoleBadges
+                  roles={roles}
+                  onSelect={(role) =>
+                    id ? navigate(getUserRolePath(id, role.name)) : undefined
+                  }
+                  empty={translate(
                     "users.detail.noRoles",
                     { ns: "app" },
                     "No assigned roles"
                   )}
-                </span>
-              )}
+                />
+              </section>
+
+              <Separator />
+
+              <DetailSection
+                title={translate(
+                  "users.detail.timestamps",
+                  { ns: "app" },
+                  "Timestamps"
+                )}
+                items={[
+                  [
+                    translate(
+                      "users.fields.createdAt",
+                      { ns: "app" },
+                      "Created at"
+                    ),
+                    formatDate(record?.createdAt),
+                  ],
+                  [
+                    translate(
+                      "users.fields.updatedAt",
+                      { ns: "app" },
+                      "Updated at"
+                    ),
+                    formatDate(record?.updatedAt),
+                  ],
+                ]}
+              />
             </div>
-          </section>
-          <Separator />
-          <DetailSection
-            title={translate(
-              "users.detail.timestamps",
-              { ns: "app" },
-              "Timestamps"
-            )}
-            items={[
-              [
-                translate(
-                  "users.fields.createdAt",
-                  { ns: "app" },
-                  "Created at"
-                ),
-                formatDate(record?.createdAt),
-              ],
-              [
-                translate(
-                  "users.fields.updatedAt",
-                  { ns: "app" },
-                  "Updated at"
-                ),
-                formatDate(record?.updatedAt),
-              ],
-            ]}
-          />
-        </CardContent>
-      </Card>
-    </ShowView>
+          )}
+        </div>
+    </RouteDrawer>
   );
 };
 
@@ -178,7 +269,7 @@ function DetailSection({
         {items.map(([label, value]) => (
           <div key={label} className="space-y-1">
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="text-sm font-medium">{value}</dd>
+            <dd className="text-sm font-medium break-words">{value}</dd>
           </div>
         ))}
       </dl>

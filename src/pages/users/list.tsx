@@ -2,21 +2,20 @@ import { useGetLocale, useTranslate } from "@refinedev/core";
 import { useTable } from "@refinedev/react-table";
 import { createColumnHelper } from "@tanstack/react-table";
 import { Eye, Pencil, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { useNavigate } from "react-router";
 
 import { DataTable } from "@/components/data-table/data-table";
 import { DeleteButton } from "@/components/resources/buttons/delete";
 import { EditButton } from "@/components/resources/buttons/edit";
 import { ShowButton } from "@/components/resources/buttons/show";
 import { ListView } from "@/components/resources/views/list-view";
-import { Badge } from "@/components/ui/badge";
 import { useAIPageElementHandle } from "@/extensions/nocobase-ai";
-import { resolveTranslatableText } from "@/lib/i18n";
 import type { Role } from "@/lib/nocobase/acl";
+import { RoleBadges } from "./role-badges";
+import { resolveRoleLabel } from "./role-utils";
+import { getRolePath } from "./routes";
 import type { UserRecord } from "./types";
-
-const getRoleLabel = (role: Role) =>
-  resolveTranslatableText(role.title || role.name, { ns: "starter" });
 
 const isRootUser = (record: UserRecord) =>
   record.roles?.some((role) => role.name === "root") ?? false;
@@ -25,6 +24,11 @@ export const UserList = () => {
   const translate = useTranslate();
   const getLocale = useGetLocale();
   const locale = getLocale();
+  const navigate = useNavigate();
+  const showRole = useCallback(
+    (role: Role) => navigate(getRolePath(role.name)),
+    [navigate]
+  );
 
   const columns = useMemo(() => {
     const columnHelper = createColumnHelper<UserRecord>();
@@ -61,17 +65,7 @@ export const UserList = () => {
         enableSorting: false,
         cell: ({ getValue }) => {
           const roles = getValue() ?? [];
-          return roles.length ? (
-            <div className="flex flex-wrap gap-1">
-              {roles.map((role) => (
-                <Badge key={role.name} variant="secondary">
-                  {getRoleLabel(role)}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            "-"
-          );
+          return <RoleBadges roles={roles} onSelect={showRole} empty="-" />;
         },
       }),
       columnHelper.accessor("createdAt", {
@@ -97,6 +91,7 @@ export const UserList = () => {
         cell: ({ row }) => (
           <div className="flex items-center gap-1">
             <EditButton
+              resource="users"
               recordItemId={row.original.id}
               variant="ghost"
               size="icon"
@@ -114,6 +109,7 @@ export const UserList = () => {
               <Pencil />
             </EditButton>
             <ShowButton
+              resource="users"
               recordItemId={row.original.id}
               variant="ghost"
               size="icon"
@@ -132,6 +128,7 @@ export const UserList = () => {
             </ShowButton>
             {isRootUser(row.original) ? null : (
               <DeleteButton
+                resource="users"
                 recordItemId={row.original.id}
                 variant="ghost"
                 size="icon"
@@ -156,12 +153,13 @@ export const UserList = () => {
         size: 144,
       }),
     ];
-  }, [locale, translate]);
+  }, [locale, showRole, translate]);
 
   const table = useTable<UserRecord>({
     columns,
     refineCoreProps: {
-      syncWithLocation: true,
+      resource: "users",
+      syncWithLocation: false,
       meta: {
         appends: ["roles"],
       },
@@ -188,7 +186,7 @@ export const UserList = () => {
         phone: record.phone,
         roles: record.roles?.map((role) => ({
           name: role.name,
-          title: getRoleLabel(role),
+          title: resolveRoleLabel(role),
         })),
         createdAt: record.createdAt,
       })),
@@ -196,7 +194,7 @@ export const UserList = () => {
   });
 
   return (
-    <ListView>
+    <ListView resource="users">
       <div ref={tableContext.ref}>
         <DataTable table={table} />
       </div>
