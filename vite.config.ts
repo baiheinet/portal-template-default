@@ -1,5 +1,6 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import fs from "node:fs";
 import path from "path";
 import { defineConfig, loadEnv } from "vite";
 
@@ -30,6 +31,19 @@ const normalizeBase = (base?: string) => {
   return `/${normalized.replace(/^\/+|\/+$/g, "")}/`;
 };
 
+const copyRawIndexHtmlPlugin = () => ({
+  name: "copy-raw-index-html",
+  closeBundle() {
+    const distDir = path.resolve(__dirname, "dist");
+    const indexHtml = path.join(distDir, "index.html");
+    const rawIndexHtml = path.join(distDir, "index.raw.html");
+
+    if (fs.existsSync(indexHtml)) {
+      fs.copyFileSync(indexHtml, rawIndexHtml);
+    }
+  },
+});
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -47,7 +61,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: normalizeBase(env.NOCOBASE_PORTAL_BASE),
     envPrefix: ["VITE_", "NOCOBASE_"],
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), copyRawIndexHtmlPlugin()],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

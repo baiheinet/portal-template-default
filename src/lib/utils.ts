@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { getPortalBase } from "@/providers/runtime-config"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -8,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 export function assetUrl(path: string) {
   if (/^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i.test(path)) return path
 
-  const base = import.meta.env.BASE_URL.replace(/\/+$/, "")
+  const base = getPortalBase().replace(/\/+$/, "")
   const assetPath = `/${path.replace(/^\/+/, "")}`
 
   if (base && (assetPath === base || assetPath.startsWith(`${base}/`))) {

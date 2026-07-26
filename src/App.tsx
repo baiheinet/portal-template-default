@@ -41,6 +41,7 @@ import { KeyRound, PanelsTopLeft, UsersRound } from "lucide-react";
 import { i18nProvider } from "./providers/i18n";
 import { SystemSettingsProvider } from "./providers/system-settings";
 import { AuthDemoPage } from "./components/auth/demo";
+import { getPortalBase } from "./providers/runtime-config";
 
 const coreResources: ResourceProps[] = [
   {
@@ -87,7 +88,7 @@ const coreResources: ResourceProps[] = [
   },
 ];
 
-const basename = import.meta.env.BASE_URL.replace(/\/+$/, "");
+const basename = getPortalBase().replace(/\/+$/, "");
 
 function App() {
   return (

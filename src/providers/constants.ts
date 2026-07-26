@@ -1,5 +1,7 @@
+import { getRuntimeApiUrl } from "./runtime-config";
+
 const rawApiUrl =
-  import.meta.env.NOCOBASE_API_URL ?? "http://127.0.0.1:13000/api";
+  getRuntimeApiUrl() ?? "http://127.0.0.1:13000/api";
 
 const getDefaultProxyTarget = (apiUrl?: string) => {
   if (!apiUrl || apiUrl.startsWith("/")) return undefined;
