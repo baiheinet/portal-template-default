@@ -31,7 +31,30 @@ const normalizeBase = (base?: string) => {
   return `/${normalized.replace(/^\/+|\/+$/g, "")}/`;
 };
 
-const copyRawIndexHtmlPlugin = () => ({
+const getBasePrefix = (base: string) => base.replace(/\/$/, "");
+
+const defaultRuntimeConfig = `<!-- nocobase-runtime-config:start -->
+<script>
+  window.NOCOBASE_PORTAL_BASE = "/";
+  window.NOCOBASE_API_URL = "/api";
+</script>
+<!-- nocobase-runtime-config:end -->
+`;
+
+const stripBaseFromIndexHtml = (html: string, base: string) => {
+  const basePrefix = getBasePrefix(base);
+  if (!basePrefix) return html;
+
+  const attributePattern = /\b(src|href|content)=(["'])\/(?!\/)([^"']*)\2/g;
+
+  return html.replace(attributePattern, (match, attribute, quote, path) => {
+    const value = `/${path}`;
+    if (!value.startsWith(`${basePrefix}/`)) return match;
+    return `${attribute}=${quote}${value.slice(basePrefix.length) || "/"}${quote}`;
+  });
+};
+
+const copyRawIndexHtmlPlugin = (base: string) => ({
   name: "copy-raw-index-html",
   closeBundle() {
     const distDir = path.resolve(__dirname, "dist");
@@ -39,7 +62,21 @@ const copyRawIndexHtmlPlugin = () => ({
     const rawIndexHtml = path.join(distDir, "index.raw.html");
 
     if (fs.existsSync(indexHtml)) {
-      fs.copyFileSync(indexHtml, rawIndexHtml);
+      const html = fs.readFileSync(indexHtml, "utf8");
+      const rawHtml = stripBaseFromIndexHtml(html, base);
+      const moduleScriptPattern =
+        /<script\s+[^>]*type=["']module["'][^>]*>/i;
+      const moduleScriptMatch = rawHtml.match(moduleScriptPattern);
+
+      if (moduleScriptMatch?.index === undefined) {
+        fs.writeFileSync(rawIndexHtml, rawHtml);
+        return;
+      }
+
+      fs.writeFileSync(
+        rawIndexHtml,
+        `${rawHtml.slice(0, moduleScriptMatch.index)}${defaultRuntimeConfig}${rawHtml.slice(moduleScriptMatch.index)}`
+      );
     }
   },
 });
@@ -58,10 +95,12 @@ export default defineConfig(({ mode }) => {
       })()
     : undefined;
 
+  const portalBase = normalizeBase(env.NOCOBASE_PORTAL_BASE);
+
   return {
-    base: normalizeBase(env.NOCOBASE_PORTAL_BASE),
+    base: portalBase,
     envPrefix: ["VITE_", "NOCOBASE_"],
-    plugins: [react(), tailwindcss(), copyRawIndexHtmlPlugin()],
+    plugins: [react(), tailwindcss(), copyRawIndexHtmlPlugin(portalBase)],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
