@@ -141,9 +141,9 @@ function PromptGeneratorContent() {
       embedded:
         "Render ChatInline inside the target content region and keep its width fluid within the parent container.",
       page: "Create a dedicated route and render ChatPage with AIChatWindow filling the available page content.",
-      "side-panel": `Use ChatSidePanelLayout on the right with a ${panelWidth}px panel. Opening chat must push the page narrower instead of covering it on desktop; mobile may use an overlay.`,
+      "side-panel": `Use ChatSurface with variant="side-panel" on the right and a ${panelWidth}px width. Opening chat must push the page narrower instead of covering it on desktop; mobile may use an overlay.`,
       dialog:
-        "Open ChatDialog from a page action. Keep conversation state in AIProvider/AIChatProvider so closing the dialog does not discard it.",
+        "Open ChatSurface with variant=\"dialog\" from a page action. Keep conversation state in AIProvider/AIChatProvider so closing the dialog does not discard it.",
       mobile:
         "Render ChatInline in the target region with a mobile-first width around 390px and preserve the same responsive AIChatWindow API.",
     }[placement];
@@ -181,7 +181,7 @@ Implementation requirements:
 - Wrap the application content with AIPageElementProvider when page-element picking is enabled.
 - Register selectable React components with useAIPageElement and return serializable business context from getContext.
 - Reuse AIChatWindow and the existing providers; do not duplicate message, streaming, reasoning, or tool-call state.
-- When the right panel is expandable, keep one AIChatProvider mounted while switching between ChatSidePanel and ChatDialog. Put ChatSurfaceActions in the window header.
+- When the right panel is expandable, render one AIChatWindow inside ChatSurface and change only its variant between "side-panel" and "dialog". Put ChatSurfaceActions in the window header.
 - Keep the generic Tool Call shell responsible for status, ASK approval, errors, and disclosure. Register business-specific bodies through AIToolRendererProvider.
 - Include the built-in specialized Tool Card renderers. This is part of the standard AI chat capability, not an optional page setting.
 - Register browser-side tool implementations through AIProvider.toolInvokers. After all interrupted calls are approved, the provider executes these handlers and sends their results when resuming the NocoBase conversation.
