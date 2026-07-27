@@ -179,8 +179,13 @@ export function useChatAttachments(activeConversationId: string) {
       }),
     []
   );
+  // Falls back to the shared EMPTY_ATTACHMENTS rather than a fresh `[]`: callers compare the
+  // result by identity across an await to detect "the user changed the attachments mid-send", and
+  // a new array each call would make that check fire on every send from a conversation with no
+  // attachments.
   const getConversationAttachments = useCallback(
-    (conversationId: string) => draftsRef.current[conversationId] ?? [],
+    (conversationId: string) =>
+      draftsRef.current[conversationId] ?? EMPTY_ATTACHMENTS,
     []
   );
   const attachments = drafts[activeConversationId] ?? EMPTY_ATTACHMENTS;

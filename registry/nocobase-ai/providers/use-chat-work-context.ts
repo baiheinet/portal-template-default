@@ -74,8 +74,11 @@ export function useChatWorkContext(activeConversationId: string) {
   );
 
   const clearWorkContext = useCallback(() => setDrafts({}), []);
+  // Shared EMPTY_CONTEXT rather than a fresh `[]` — see getConversationAttachments: the send path
+  // compares this by identity across an await, so a new array each call would read as "the user
+  // changed the work context" and silently abort every send.
   const getConversationWorkContext = useCallback(
-    (conversationId: string) => draftsRef.current[conversationId] ?? [],
+    (conversationId: string) => draftsRef.current[conversationId] ?? EMPTY_CONTEXT,
     []
   );
   const workContext = drafts[activeConversationId] ?? EMPTY_CONTEXT;
