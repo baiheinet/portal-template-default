@@ -27,6 +27,7 @@ import { TooltipProvider } from "./components/ui/tooltip";
 import { BrandLogo } from "./components/app-shell/brand";
 import {
   AppExtensionProviders,
+  AppAuthRuntimeProviders,
   extensionResources,
   extensionRouteElements,
 } from "./app/extensions";
@@ -36,17 +37,11 @@ import { accessControlProvider } from "./providers/access-control";
 import { AclBootstrap } from "./components/access-control/acl-bootstrap";
 import { ResourceAccessGuard } from "./components/access-control/resource-access-guard";
 import { NavigateToAccessibleResource } from "./components/access-control/navigate-to-accessible-resource";
-import { UsersRound, Mail, FlaskConical } from "lucide-react";
+import { KeyRound, PanelsTopLeft, UsersRound } from "lucide-react";
 import { i18nProvider } from "./providers/i18n";
 import { SystemSettingsProvider } from "./providers/system-settings";
-import { MailManagerPage, MailComposePage } from "./pages/mail";
-import {
-  MailDemosOverview,
-  MailDemoAllUsers,
-  MailDemoPersonal,
-  MailDemoUserMail,
-  MailDemoComposeAnywhere,
-} from "./pages/mail-demos";
+import { AuthDemoPage } from "./components/auth/demo";
+import { getPortalBase } from "./providers/runtime-config";
 
 const coreResources: ResourceProps[] = [
   {
@@ -72,35 +67,36 @@ const coreResources: ResourceProps[] = [
       },
     },
   },
-
   {
-    name: "mailMessages",
-    list: "/admin/mail",
+    name: "auth-components",
     meta: {
-      label: "Mail",
-      icon: <Mail />,
-      description: "Read and manage mailbox messages.",
+      label: "Authentication",
+      icon: <KeyRound />,
+      description: "NocoBase authentication UI and integration patterns.",
+      acl: { type: "authenticated" },
     },
   },
   {
-    name: "mailDemos",
-    list: "/admin/mail-demos",
+    name: "auth-patterns",
+    list: "/auth",
     meta: {
-      label: "Mail Demos",
-      icon: <FlaskConical />,
-      description: "Five ways to use the mail components.",
+      parent: "auth-components",
+      label: "Login composition",
+      icon: <PanelsTopLeft />,
+      acl: { type: "authenticated" },
     },
   },
 ];
 
-const basename = import.meta.env.BASE_URL.replace(/\/+$/, "");
+const basename = getPortalBase().replace(/\/+$/, "");
 
 function App() {
   return (
     <BrowserRouter basename={basename || undefined}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <SystemSettingsProvider>
+      <AppAuthRuntimeProviders>
+        <ThemeProvider>
+          <TooltipProvider>
+            <SystemSettingsProvider>
             <Refine
               dataProvider={dataProvider}
               notificationProvider={useNotificationProvider()}
@@ -120,11 +116,10 @@ function App() {
               }}
             >
             <Routes>
-
               <Route
                 element={
                   <Authenticated
-                    key="authenticated-admin"
+                    key="authenticated-inner"
                     fallback={<CatchAllNavigate to="/login" />}
                   >
                     <AclBootstrap>
@@ -138,6 +133,7 @@ function App() {
                 }
               >
                 <Route index element={<NavigateToAccessibleResource />} />
+                <Route path="/auth" element={<AuthDemoPage />} />
                 <Route
                   path="/users"
                   element={<UserResourceLayout />}
@@ -192,15 +188,6 @@ function App() {
                     />
                   </Route>
                 </Route>
-                <Route path="/admin">
-                  <Route path="mail" element={<MailManagerPage />} />
-                  <Route path="mail/compose" element={<MailComposePage />} />
-                  <Route path="mail-demos" element={<MailDemosOverview />} />
-                  <Route path="mail-demos/all-users" element={<MailDemoAllUsers />} />
-                  <Route path="mail-demos/personal" element={<MailDemoPersonal />} />
-                  <Route path="mail-demos/filtered" element={<MailDemoUserMail />} />
-                  <Route path="mail-demos/compose-anywhere" element={<MailDemoComposeAnywhere />} />
-                </Route>
                 {extensionRouteElements}
                 <Route path="*" element={<ErrorComponent />} />
               </Route>
@@ -217,6 +204,7 @@ function App() {
                 }
               >
                 <Route path="/login" element={<Login />} />
+                <Route path="/signin" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
               </Route>
@@ -226,9 +214,10 @@ function App() {
             <UnsavedChangesNotifier />
             <DocumentTitleHandler appName="NocoBase" />
             </Refine>
-          </SystemSettingsProvider>
-        </TooltipProvider>
-      </ThemeProvider>
+            </SystemSettingsProvider>
+          </TooltipProvider>
+        </ThemeProvider>
+      </AppAuthRuntimeProviders>
     </BrowserRouter>
   );
 }
