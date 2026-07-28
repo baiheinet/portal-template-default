@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import type {
   MailAccount,
@@ -8,7 +8,7 @@ import type {
   MailNote,
   MailScope,
 } from "./types";
-import { MailBoxType } from "./types";
+import { isLocalMailDraft, MailBoxType } from "./types";
 import { mailApi } from "./mail-api";
 import { useMailMessages } from "./use-mail-messages";
 import { useMailCompose, buildComposeInitial } from "./use-mail-compose";
@@ -17,25 +17,44 @@ import { MailToolbar } from "./mail-toolbar";
 import { MailTable } from "./mail-table";
 import { MailDetail } from "./mail-detail";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { useMailUnread } from "./mail-unread";
 
 export interface MailInboxProps {
   scope?: MailScope;
+  boxType?: MailBoxType;
+  isRead?: boolean;
+  labelId?: number;
   columns?: MailColumnId[];
   filter?: Record<string, unknown>;
   userId?: number;
   pageSize?: number;
   showToolbar?: boolean;
+  toolbarActions?: ReactNode;
   className?: string;
 }
 
 export function MailInbox({
   scope,
+  boxType,
+  isRead,
+  labelId,
   columns,
   filter,
   userId,
   pageSize = 15,
   showToolbar = true,
+  toolbarActions,
   className,
 }: MailInboxProps) {
   const [search, setSearch] = useState("");
@@ -45,6 +64,9 @@ export function MailInbox({
   const [detailOpen, setDetailOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [accounts, setAccounts] = useState<MailAccount[]>([]);
+  const [permanentDeleteIds, setPermanentDeleteIds] = useState<number[]>([]);
+  const openMessageSequence = useRef(0);
+  const { refresh: refreshUnread } = useMailUnread();
 
   const {
     messages,
@@ -55,11 +77,41 @@ export function MailInbox({
     setPage,
     refresh,
     setMessages,
-  } = useMailMessages({ scope, search, filter, userId, pageSize });
+  } = useMailMessages({ scope, boxType, isRead, labelId, search, filter, userId, pageSize });
+
+  const selectedMessages = messages.filter((message) => selectedIds.has(message.id));
+  const actionMode: "normal" | "trash" | "draft" | "providerDraft" | "scheduled" | "mixed" =
+    selectedMessages.length &&
+    selectedMessages.every((message) => message.boxType === MailBoxType.TRASH)
+      ? "trash"
+      : selectedMessages.length && selectedMessages.every(isLocalMailDraft)
+        ? "draft"
+        : selectedMessages.length &&
+            selectedMessages.every(
+              (message) => message.isDraft && !isLocalMailDraft(message)
+            )
+          ? "providerDraft"
+        : selectedMessages.length &&
+            selectedMessages.every(
+              (message) => message.boxType === MailBoxType.SCHEDULED
+            )
+          ? "scheduled"
+          : selectedMessages.some(
+                (message) =>
+                  message.isDraft ||
+                  message.boxType === MailBoxType.SCHEDULED ||
+                  message.boxType === MailBoxType.TRASH
+              )
+            ? "mixed"
+            : "normal";
 
   const { openCompose, composeDialog } = useMailCompose({
     accounts,
     onSent: refresh,
+    onAccountChange: (account) =>
+      setAccounts((prev) =>
+        prev.map((item) => (item.id === account.id ? account : item))
+      ),
   });
 
   useEffect(() => {
@@ -71,25 +123,41 @@ export function MailInbox({
 
   const openMessage = useCallback(
     async (message: MailMessage) => {
+      const sequence = ++openMessageSequence.current;
+      if (isLocalMailDraft(message)) {
+        try {
+          const detail = await mailApi.getMessage(message.id);
+          if (sequence !== openMessageSequence.current) return;
+          openCompose(buildComposeInitial(detail, "draft"), "draft");
+        } catch (error) {
+          if (sequence !== openMessageSequence.current) return;
+          toast.error(
+            error instanceof Error ? error.message : "Failed to load draft"
+          );
+        }
+        return;
+      }
       setActiveMessage(message);
       setDetailOpen(true);
       setDetailLoading(true);
       try {
         const detail = await mailApi.getMessage(message.id);
+        if (sequence !== openMessageSequence.current) return;
         setActiveMessage(detail);
-        if (!message.isRead) {
-          mailApi.setRead([message.mailId], true).catch(() => undefined);
+        if (!message.isRead && message.mailId) {
+          mailApi.setRead([message.mailId], true).then(refreshUnread).catch(() => undefined);
           setMessages((prev) =>
             prev.map((m) => (m.id === message.id ? { ...m, isRead: true } : m))
           );
         }
       } catch (error) {
+        if (sequence !== openMessageSequence.current) return;
         toast.error(error instanceof Error ? error.message : "Failed to load message");
       } finally {
-        setDetailLoading(false);
+        if (sequence === openMessageSequence.current) setDetailLoading(false);
       }
     },
-    [setMessages]
+    [openCompose, setMessages, refreshUnread]
   );
 
   const toggleSelect = useCallback((id: number, checked: boolean) => {
@@ -119,11 +187,12 @@ export function MailInbox({
         );
         setSelectedIds(new Set());
         toast.success(isRead ? "Marked as read" : "Marked as unread");
+        refreshUnread();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Action failed");
       }
     },
-    [messages, selectedIds, setMessages]
+    [messages, selectedIds, setMessages, refreshUnread]
   );
 
   const handleBulkTrash = useCallback(async () => {
@@ -133,22 +202,24 @@ export function MailInbox({
       await mailApi.trashMessages(ids, true);
       toast.success("Moved to trash");
       clearSelectionAndRefresh();
+      refreshUnread();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to move to trash");
     }
-  }, [selectedIds, clearSelectionAndRefresh]);
+  }, [selectedIds, clearSelectionAndRefresh, refreshUnread]);
 
-  const handleBulkArchive = useCallback(async () => {
+  const handleBulkRestore = useCallback(async () => {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
     try {
       await mailApi.trashMessages(ids, false);
-      toast.success("Archived");
+      toast.success("Messages put back");
       clearSelectionAndRefresh();
+      refreshUnread();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to archive");
+      toast.error(error instanceof Error ? error.message : "Failed to put messages back");
     }
-  }, [selectedIds, clearSelectionAndRefresh]);
+  }, [selectedIds, clearSelectionAndRefresh, refreshUnread]);
 
   const handleSync = useCallback(async () => {
     setSyncing(true);
@@ -157,16 +228,20 @@ export function MailInbox({
       if (emails.length) await mailApi.sync(emails);
       toast.success("Mailbox synced");
       clearSelectionAndRefresh();
+      refreshUnread();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Sync failed");
     } finally {
       setSyncing(false);
     }
-  }, [accounts, clearSelectionAndRefresh]);
+  }, [accounts, clearSelectionAndRefresh, refreshUnread]);
 
   const openReply = useCallback(
     (message: MailMessage, mode: ComposeMode) => {
-      const accountEmails = accounts.map((a) => a.email);
+      const accountEmails = accounts.flatMap((account) => [
+        account.email,
+        ...(account.identities?.map((identity) => identity.email) ?? []),
+      ]);
       openCompose(buildComposeInitial(message, mode, accountEmails), mode);
     },
     [accounts, openCompose]
@@ -180,26 +255,66 @@ export function MailInbox({
         setDetailOpen(false);
         setActiveMessage(undefined);
         refresh();
+        refreshUnread();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to move to trash");
       }
     },
-    [refresh]
+    [refresh, refreshUnread]
   );
 
-  const handleDetailArchive = useCallback(
+  const handleDetailRestore = useCallback(
     async (message: MailMessage) => {
       try {
-        await mailApi.setBoxType(message.id, MailBoxType.ARCHIVE);
-        toast.success("Archived");
+        await mailApi.trashMessages([message.id], false);
+        toast.success("Message put back");
         setDetailOpen(false);
         setActiveMessage(undefined);
         refresh();
+        refreshUnread();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to archive");
+        toast.error(error instanceof Error ? error.message : "Failed to put message back");
       }
     },
-    [refresh]
+    [refresh, refreshUnread]
+  );
+
+  const handlePermanentDelete = useCallback(async () => {
+    if (!permanentDeleteIds.length) return;
+    try {
+      await mailApi.destroyMessages(permanentDeleteIds);
+      toast.success("Messages permanently deleted");
+      if (activeMessage && permanentDeleteIds.includes(activeMessage.id)) {
+        setDetailOpen(false);
+        setActiveMessage(undefined);
+      }
+      setPermanentDeleteIds([]);
+      clearSelectionAndRefresh();
+      refreshUnread();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to permanently delete messages"
+      );
+    }
+  }, [activeMessage, clearSelectionAndRefresh, permanentDeleteIds, refreshUnread]);
+
+  const handleCancelScheduled = useCallback(
+    async (message: MailMessage) => {
+      try {
+        await mailApi.cancelScheduled(message.id);
+        const draft = await mailApi.getMessage(message.id);
+        setDetailOpen(false);
+        setActiveMessage(undefined);
+        refresh();
+        openCompose(buildComposeInitial(draft, "draft"), "draft");
+        toast.success("Scheduled send canceled; message moved to drafts");
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to cancel scheduled send"
+        );
+      }
+    },
+    [openCompose, refresh]
   );
 
   const handleToggleTodo = useCallback(
@@ -247,22 +362,6 @@ export function MailInbox({
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      {showToolbar && (
-        <MailToolbar
-          search={search}
-          onSearchChange={setSearch}
-          selectedCount={selectedIds.size}
-          syncing={syncing}
-          onSync={handleSync}
-          onMarkRead={() => handleSetRead(true)}
-          onMarkUnread={() => handleSetRead(false)}
-          onArchive={handleBulkArchive}
-          onTrash={handleBulkTrash}
-          onClearSelection={() => setSelectedIds(new Set())}
-          onCompose={() => openCompose()}
-        />
-      )}
-
       <MailTable
         messages={messages}
         loading={loading}
@@ -276,6 +375,26 @@ export function MailInbox({
         onSelect={toggleSelect}
         columns={columns}
         emptyVariant={search ? "search" : "inbox"}
+        toolbar={
+          showToolbar ? (
+            <MailToolbar
+              search={search}
+              onSearchChange={setSearch}
+              selectedCount={selectedIds.size}
+              syncing={syncing}
+              onSync={handleSync}
+              onMarkRead={() => handleSetRead(true)}
+              onMarkUnread={() => handleSetRead(false)}
+              actionMode={actionMode}
+              onRestore={handleBulkRestore}
+              onDeleteForever={() => setPermanentDeleteIds(Array.from(selectedIds))}
+              onTrash={handleBulkTrash}
+              onClearSelection={() => setSelectedIds(new Set())}
+              onCompose={() => openCompose()}
+              actions={toolbarActions}
+            />
+          ) : undefined
+        }
       />
 
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
@@ -291,8 +410,10 @@ export function MailInbox({
               onReplyAll={(m) => openReply(m, "replyAll")}
               onForward={(m) => openReply(m, "forward")}
               onToggleTodo={handleToggleTodo}
-              onArchive={handleDetailArchive}
               onTrash={handleDetailTrash}
+              onRestore={handleDetailRestore}
+              onDeleteForever={(message) => setPermanentDeleteIds([message.id])}
+              onCancelScheduled={handleCancelScheduled}
               onLabelsChange={handleLabelsChange}
               onNoteChange={handleNoteChange}
             />
@@ -301,6 +422,29 @@ export function MailInbox({
       </Sheet>
 
       {composeDialog}
+
+      <AlertDialog
+        open={permanentDeleteIds.length > 0}
+        onOpenChange={(open) => !open && setPermanentDeleteIds([])}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permanently delete messages?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action deletes the selected messages from the mail provider and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => void handlePermanentDelete()}
+            >
+              Delete permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

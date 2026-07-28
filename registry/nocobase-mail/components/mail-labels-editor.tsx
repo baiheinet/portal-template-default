@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGetIdentity } from "@refinedev/core";
-import { Check, Loader2, Plus, Tag as TagIcon } from "lucide-react";
+import { Check, Loader2, Plus, Settings2, Tag as TagIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { MailLabel, MailMessage } from "./types";
 import { LABEL_COLOR_OPTIONS, LABEL_SWATCH_CLASSES } from "./types";
 import { mailApi } from "./mail-api";
 import { MailLabelBadge } from "./mail-label-badge";
+import { MailLabelManager } from "./mail-label-manager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,6 +34,9 @@ export function MailLabelsEditor({
   const [newLabel, setNewLabel] = useState("");
   const [newColor, setNewColor] = useState<string>("default");
   const [creating, setCreating] = useState(false);
+  const [managerOpen, setManagerOpen] = useState(false);
+  const commitQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const commitSequence = useRef(0);
 
   useEffect(() => {
     setSelectedIds(message.labels?.map((l) => l.id) ?? []);
@@ -63,15 +67,31 @@ export function MailLabelsEditor({
       .filter((l): l is MailLabel => Boolean(l));
   };
 
-  const commit = async (ids: number[], from?: MailLabel[]) => {
-    try {
-      await mailApi.setMessageLabels(message.id, ids);
-      onChange?.(resolveLabels(ids, from));
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to update labels"
-      );
-    }
+  const commit = (
+    ids: number[],
+    from?: MailLabel[],
+    rollbackIds = selectedIds
+  ) => {
+    const sequence = ++commitSequence.current;
+    const request = commitQueue.current
+      .catch(() => undefined)
+      .then(() => mailApi.setMessageLabels(message.id, ids));
+    commitQueue.current = request;
+    return request
+      .then(() => {
+        if (sequence === commitSequence.current) {
+          onChange?.(resolveLabels(ids, from));
+        }
+      })
+      .catch((error) => {
+        if (sequence === commitSequence.current) {
+          setSelectedIds(rollbackIds);
+          onChange?.(resolveLabels(rollbackIds, from));
+          toast.error(
+            error instanceof Error ? error.message : "Failed to update labels"
+          );
+        }
+      });
   };
 
   const toggle = (id: number) => {
@@ -79,7 +99,7 @@ export function MailLabelsEditor({
       ? selectedIds.filter((x) => x !== id)
       : [...selectedIds, id];
     setSelectedIds(next);
-    void commit(next);
+    void commit(next, undefined, selectedIds);
   };
 
   const createLabel = async () => {
@@ -104,7 +124,19 @@ export function MailLabelsEditor({
     }
   };
 
+  const handleLabelsManaged = (labels: MailLabel[]) => {
+    setAllLabels(labels);
+    const validIds = selectedIds.filter((id) => labels.some((label) => label.id === id));
+    if (validIds.length !== selectedIds.length) {
+      setSelectedIds(validIds);
+      void commit(validIds, labels, selectedIds);
+    } else {
+      onChange?.(resolveLabels(validIds, labels));
+    }
+  };
+
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
@@ -213,8 +245,23 @@ export function MailLabelsEditor({
               {creating ? <Loader2 className="animate-spin" /> : <Plus />}
             </Button>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 w-full justify-start"
+            onClick={() => { setOpen(false); setManagerOpen(true); }}
+          >
+            <Settings2 /> Manage labels
+          </Button>
         </div>
       </PopoverContent>
     </Popover>
+    <MailLabelManager
+      open={managerOpen}
+      onOpenChange={setManagerOpen}
+      labels={allLabels}
+      onChange={handleLabelsManaged}
+    />
+    </>
   );
 }

@@ -4,9 +4,14 @@ import type {
   MailLabel,
   MailListParams,
   MailListResponse,
+  MailMassSendSettings,
+  MailMassListResponse,
+  MailMassMessage,
   MailMessage,
   MailNote,
   MailSendPayload,
+  MailTemplate,
+  MailUploadedAttachment,
   MailUserRecord,
 } from "./types";
 
@@ -77,7 +82,13 @@ export const mailApi = {
 
   destroyMessages(ids: (number | string)[]): Promise<unknown> {
     return nocobaseClient.action("mailMessages", "destroy", {
-      query: { filterByTk: ids.join(",") },
+      query: { filterByTk: ids },
+    });
+  },
+
+  cancelScheduled(id: number | string): Promise<unknown> {
+    return nocobaseClient.action("mailMessages", "cancelTimelySend", {
+      query: { id },
     });
   },
 
@@ -91,6 +102,73 @@ export const mailApi = {
     return nocobaseClient.action("mail", "messageSend", { body: payload });
   },
 
+  massSend(
+    payload: MailSendPayload,
+    settings: MailMassSendSettings = {}
+  ): Promise<unknown> {
+    return nocobaseClient.action("mailMassMessages", "send", {
+      body: {
+        data: payload,
+        mailSendSetting: settings,
+      },
+    });
+  },
+
+  async listMassMessages(parentId: number | null = null): Promise<MailMassListResponse> {
+    const pageSize = 100;
+    const rows: MailMassMessage[] = [];
+    let page = 1;
+    let count = 0;
+
+    do {
+      const payload = await nocobaseClient.action<unknown>("mailMassMessages", "list", {
+        query: {
+          page,
+          pageSize,
+          filter: JSON.stringify({ parentId }),
+          sort: "-createdAt",
+        },
+        unwrap: "none",
+      });
+      const parsed = parseListResponse(payload);
+      const nextRows = parsed.rows as unknown as MailMassMessage[];
+      rows.push(...nextRows);
+      count = parsed.count;
+      if (!nextRows.length) break;
+      page += 1;
+    } while (rows.length < count);
+
+    return { rows, count };
+  },
+
+  cancelMassMessage(id: number | string): Promise<unknown> {
+    return nocobaseClient.action("mailMassMessages", "cancel", {
+      body: { id },
+    });
+  },
+
+  resendMassMessage(id: number | string): Promise<unknown> {
+    return nocobaseClient.action("mailMassMessages", "resend", {
+      body: { id },
+    });
+  },
+
+  uploadAttachment(file: File): Promise<MailUploadedAttachment> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return nocobaseClient.action<MailUploadedAttachment>(
+      "mail",
+      "messageAttachmentUpload",
+      { body: formData }
+    ).then((attachment) => ({
+      ...attachment,
+      // Google reads originalname/mimetype; Microsoft reads filename/mimeType.
+      // Keep both pairs aligned so recipients see the real file name and type.
+      filename: attachment.originalname,
+      mimeType: attachment.mimetype,
+    }));
+  },
+
   saveDraft(payload: MailSendPayload): Promise<{ id: number }> {
     return nocobaseClient.action<{ id: number }>("mail", "messageSavingDraft", {
       body: payload,
@@ -102,7 +180,16 @@ export const mailApi = {
   },
 
   unreadCount(): Promise<number> {
-    return nocobaseClient.action<number>("mail", "messageUnreadCount");
+    return nocobaseClient
+      .action<unknown>("mail", "messageUnreadCount")
+      .then((value) => {
+        if (typeof value === "number") return value;
+        if (value && typeof value === "object" && "count" in value) {
+          const count = Number((value as { count?: unknown }).count);
+          return Number.isFinite(count) ? count : 0;
+        }
+        return 0;
+      });
   },
 
   getAccounts(): Promise<MailAccount[]> {
@@ -136,6 +223,62 @@ export const mailApi = {
     description?: string;
   }): Promise<MailLabel> {
     return nocobaseClient.action<MailLabel>("mailMessageLabels", "create", {
+      body: values,
+    });
+  },
+
+  updateLabel(
+    id: number | string,
+    values: { label: string; color: string; description?: string }
+  ): Promise<MailLabel> {
+    return nocobaseClient.action<MailLabel>("mailMessageLabels", "update", {
+      query: { filterByTk: id },
+      body: values,
+    });
+  },
+
+  deleteLabel(id: number | string): Promise<unknown> {
+    return nocobaseClient.action("mailMessageLabels", "destroy", {
+      query: { filterByTk: id },
+    });
+  },
+
+  getTemplates(): Promise<MailTemplate[]> {
+    return nocobaseClient
+      .action<MailTemplate[]>("mailTemplates", "list", {
+        query: { paginate: false, sort: "createdAt" },
+      })
+      .then((res) => (Array.isArray(res) ? res : []));
+  },
+
+  createTemplate(values: { name: string; content: string }): Promise<MailTemplate> {
+    return nocobaseClient.action<MailTemplate>("mailTemplates", "create", {
+      body: values,
+    });
+  },
+
+  updateTemplate(
+    id: number | string,
+    values: { name: string; content: string }
+  ): Promise<MailTemplate> {
+    return nocobaseClient.action<MailTemplate>("mailTemplates", "update", {
+      query: { filterByTk: id },
+      body: values,
+    });
+  },
+
+  deleteTemplate(id: number | string): Promise<unknown> {
+    return nocobaseClient.action("mailTemplates", "destroy", {
+      query: { filterByTk: id },
+    });
+  },
+
+  updateAccount(
+    id: number | string,
+    values: Partial<MailAccount>
+  ): Promise<MailAccount> {
+    return nocobaseClient.action<MailAccount>("mailAccounts", "update", {
+      query: { filterByTk: id },
       body: values,
     });
   },

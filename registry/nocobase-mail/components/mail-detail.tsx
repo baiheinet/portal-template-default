@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import {
-  Archive,
   ChevronDown,
+  Clock3,
   CornerUpLeft,
   CornerUpRight,
   Forward,
@@ -10,8 +10,14 @@ import {
   Paperclip,
   Star,
   Trash2,
+  Undo2,
 } from "lucide-react";
-import type { MailLabel, MailMessage, MailNote } from "./types";
+import {
+  isLocalMailDraft,
+  type MailLabel,
+  type MailMessage,
+  type MailNote,
+} from "./types";
 import { MailAttachmentList } from "./mail-attachment-list";
 import { MailLabelsEditor } from "./mail-labels-editor";
 import { MailNoteEditor } from "./mail-note-editor";
@@ -243,8 +249,10 @@ export function MailDetail({
   onReplyAll,
   onForward,
   onToggleTodo,
-  onArchive,
   onTrash,
+  onRestore,
+  onDeleteForever,
+  onCancelScheduled,
   onLabelsChange,
   onNoteChange,
   className,
@@ -255,8 +263,10 @@ export function MailDetail({
   onReplyAll?: (message: MailMessage) => void;
   onForward?: (message: MailMessage) => void;
   onToggleTodo?: (message: MailMessage) => void;
-  onArchive?: (message: MailMessage) => void;
   onTrash?: (message: MailMessage) => void;
+  onRestore?: (message: MailMessage) => void;
+  onDeleteForever?: (message: MailMessage) => void;
+  onCancelScheduled?: (message: MailMessage) => void;
   onLabelsChange?: (message: MailMessage, labels: MailLabel[]) => void;
   onNoteChange?: (message: MailMessage, note: MailNote | undefined) => void;
   className?: string;
@@ -305,9 +315,35 @@ export function MailDetail({
   if (!message) return null;
 
   const thread = buildThread(message);
+  const isTrash = message.boxType === "trash";
+  const isScheduled = Boolean(message.scheduleSendAt);
+  const isProviderDraft = message.isDraft && !isLocalMailDraft(message);
 
   return (
     <div className={cn("flex flex-col", className)}>
+      {isScheduled && (
+        <div className="flex items-center gap-3 border-b border-amber-500/20 bg-amber-500/10 px-6 py-3 text-sm">
+          <Clock3 className="size-4 text-amber-600" />
+          <span className="flex-1">
+            Scheduled for {formatFullDate(message.scheduleSendAt)}
+          </span>
+          {!message.mailId ? (
+            <Button variant="outline" size="sm" onClick={() => onCancelScheduled?.(message)}>
+              Cancel and edit
+            </Button>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Cancel this message in the original mail provider.
+            </span>
+          )}
+        </div>
+      )}
+      {isProviderDraft && (
+        <div className="border-b border-blue-500/20 bg-blue-500/10 px-6 py-3 text-sm">
+          This draft is stored by the original mail provider and is read-only here.
+          Edit or delete it in that mailbox to preserve provider attachments and state.
+        </div>
+      )}
       <div className="border-b border-border/60 py-5 pl-6 pr-14">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -334,7 +370,7 @@ export function MailDetail({
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1">
+          {!isScheduled && !isProviderDraft && <div className="flex shrink-0 items-center gap-1">
             <Button
               variant="ghost"
               size="icon-sm"
@@ -371,23 +407,37 @@ export function MailDetail({
                 )}
               />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              title="Archive"
-              onClick={() => onArchive?.(message)}
-            >
-              <Archive />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              title="Move to trash"
-              onClick={() => onTrash?.(message)}
-            >
-              <Trash2 />
-            </Button>
-          </div>
+            {isTrash ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="Put back"
+                  onClick={() => onRestore?.(message)}
+                >
+                  <Undo2 />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="Permanently delete"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => onDeleteForever?.(message)}
+                >
+                  <Trash2 />
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Move to trash"
+                onClick={() => onTrash?.(message)}
+              >
+                <Trash2 />
+              </Button>
+            )}
+          </div>}
         </div>
       </div>
 

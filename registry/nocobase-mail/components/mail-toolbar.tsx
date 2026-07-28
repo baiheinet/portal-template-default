@@ -1,13 +1,14 @@
 import {
-  Archive,
   MailOpen,
   MailX,
   PenLine,
   RefreshCw,
   Search,
   Trash2,
+  Undo2,
   X,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -20,10 +21,13 @@ export function MailToolbar({
   onSync,
   onMarkRead,
   onMarkUnread,
-  onArchive,
+  actionMode = "normal",
+  onRestore,
+  onDeleteForever,
   onTrash,
   onClearSelection,
   onCompose,
+  actions,
   className,
 }: {
   search: string;
@@ -33,10 +37,19 @@ export function MailToolbar({
   onSync: () => void;
   onMarkRead: () => void;
   onMarkUnread: () => void;
-  onArchive: () => void;
+  actionMode?:
+    | "normal"
+    | "trash"
+    | "draft"
+    | "providerDraft"
+    | "scheduled"
+    | "mixed";
+  onRestore: () => void;
+  onDeleteForever: () => void;
   onTrash: () => void;
   onClearSelection: () => void;
   onCompose?: () => void;
+  actions?: ReactNode;
   className?: string;
 }) {
   const hasSelection = selectedCount > 0;
@@ -67,24 +80,60 @@ export function MailToolbar({
           <span className="mr-1 text-xs tabular-nums text-muted-foreground">
             {selectedCount} selected
           </span>
-          <Button variant="ghost" size="icon-sm" title="Mark as read" onClick={onMarkRead}>
-            <MailOpen />
-          </Button>
-          <Button variant="ghost" size="icon-sm" title="Mark as unread" onClick={onMarkUnread}>
-            <MailX />
-          </Button>
-          <Button variant="ghost" size="icon-sm" title="Archive" onClick={onArchive}>
-            <Archive />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="Move to trash"
-            className="text-destructive hover:text-destructive"
-            onClick={onTrash}
-          >
-            <Trash2 />
-          </Button>
+          {!['draft', 'providerDraft', 'scheduled', 'mixed'].includes(actionMode) && (
+            <>
+              <Button variant="ghost" size="icon-sm" title="Mark as read" onClick={onMarkRead}>
+                <MailOpen />
+              </Button>
+              <Button variant="ghost" size="icon-sm" title="Mark as unread" onClick={onMarkUnread}>
+                <MailX />
+              </Button>
+            </>
+          )}
+          {actionMode === "trash" ? (
+            <>
+              <Button variant="ghost" size="icon-sm" title="Put back" onClick={onRestore}>
+                <Undo2 />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Permanently delete"
+                className="text-destructive hover:text-destructive"
+                onClick={onDeleteForever}
+              >
+                <Trash2 />
+              </Button>
+            </>
+          ) : actionMode === "draft" ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Delete drafts"
+              className="text-destructive hover:text-destructive"
+              onClick={onDeleteForever}
+            >
+              <Trash2 />
+            </Button>
+          ) : actionMode === "normal" ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Move to trash"
+              className="text-destructive hover:text-destructive"
+              onClick={onTrash}
+            >
+              <Trash2 />
+            </Button>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              {actionMode === "scheduled"
+                ? "Open a scheduled message to cancel it"
+                : actionMode === "providerDraft"
+                  ? "Edit provider drafts in the original mailbox"
+                : "Select messages from one folder state"}
+            </span>
+          )}
           <Button variant="ghost" size="xs" onClick={onClearSelection}>
             Clear
           </Button>
@@ -92,6 +141,7 @@ export function MailToolbar({
       )}
 
       <div className="ml-auto flex items-center gap-2">
+        {actions}
         <Button
           variant="ghost"
           size="icon-sm"

@@ -1,5 +1,10 @@
 import { useCallback, useState } from "react";
-import type { MailAccount, MailMessage } from "./types";
+import {
+  isLocalMailDraft,
+  type MailAccount,
+  type MailMessage,
+  type MailRecipientOption,
+} from "./types";
 import { MailCompose } from "./mail-compose";
 import type {
   ComposeInitialValues,
@@ -7,32 +12,133 @@ import type {
   ComposeVariant,
 } from "./mail-compose";
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function originalBodyHtml(message: MailMessage) {
+  if (message.bodyHtml) return message.bodyHtml;
+  const text = escapeHtml(message.bodyText ?? "");
+  return `<p>${text.replace(/\n/g, "<br>")}</p>`;
+}
+
+function quoteBlock(header: string, message: MailMessage) {
+  return [
+    "<p></p>",
+    '<div class="nb-mail-quote" style="border-left:2px solid #d4d4d8;padding-left:12px;margin-top:16px;color:#52525b">',
+    `<div style="margin-bottom:8px">${header}</div>`,
+    originalBodyHtml(message),
+    "</div>",
+  ].join("");
+}
+
+function uniqueAddresses(addresses: Array<string | undefined>, excluded = new Set<string>()) {
+  const seen = new Set<string>();
+  return addresses.filter((address): address is string => {
+    const normalized = address?.trim().toLocaleLowerCase();
+    if (!normalized || excluded.has(normalized) || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
 export function buildComposeInitial(
   message: MailMessage,
   mode: ComposeMode,
   accountEmails: string[] = []
 ): ComposeInitialValues {
-  if (mode === "forward") {
+  const senderIdentity = message.identityEmail || message.email;
+  const senderValues = {
+    from: senderIdentity,
+    identityEmail: senderIdentity,
+    accountEmail: message.email,
+  };
+
+  if (mode === "draft") {
+    if (!isLocalMailDraft(message)) {
+      throw new Error(
+        "Provider-backed drafts are read-only here. Edit them in the original mail provider."
+      );
+    }
     return {
+      ...senderValues,
+      id: message.id,
+      isDraft: true,
+      to: message.toUsers?.map((user) => user.address).join(", ") || message.to,
+      cc: message.ccUsers?.map((user) => user.address).join(", ") || message.cc,
+      subject: message.subject,
+      body: message.bodyHtml || message.bodyText,
+      replyTo: message.replyTo,
+      attachments: (message.attachments ?? []).flatMap((attachment) =>
+        attachment.path
+          ? [
+              {
+                originalname: attachment.originalname || attachment.filename,
+                filename: attachment.originalname || attachment.filename,
+                path: attachment.path,
+                size: attachment.size ?? 0,
+                encoding: attachment.encoding || "7bit",
+                mimetype:
+                  attachment.mimetype || attachment.mimeType || "application/octet-stream",
+                mimeType:
+                  attachment.mimeType || attachment.mimetype || "application/octet-stream",
+              },
+            ]
+          : []
+      ),
+    };
+  }
+
+  if (mode === "forward") {
+    const header = [
+      "---------- Forwarded message ----------",
+      `From: ${escapeHtml(message.from)}`,
+      `Date: ${escapeHtml(message.date)}`,
+      `Subject: ${escapeHtml(message.subject ?? "")}`,
+    ]
+      .map((line) => `<div>${line}</div>`)
+      .join("");
+    return {
+      ...senderValues,
       subject: `Fwd: ${message.subject}`,
-      body: `\n\n---------- Forwarded message ----------\nFrom: ${message.from}\nDate: ${message.date}\nSubject: ${message.subject}\n\n${message.bodyText ?? ""}`,
+      body: quoteBlock(header, message),
     };
   }
 
   const replyTo = message.replyTo || message.mailId;
-  const to =
+  const ownAddresses = new Set(accountEmails.map((email) => email.toLocaleLowerCase()));
+  const toAddresses =
     mode === "replyAll"
-      ? [message.from, ...(message.toUsers?.map((u) => u.address) ?? [])]
-          .filter((addr) => addr && !accountEmails.includes(addr))
-          .join(", ")
-      : message.from;
+      ? uniqueAddresses(
+          [message.from, ...(message.toUsers?.map((user) => user.address) ?? [])],
+          ownAddresses
+        )
+      : [message.from];
+  const toKeys = new Set(toAddresses.map((address) => address.toLocaleLowerCase()));
+  const ccAddresses =
+    mode === "replyAll"
+      ? uniqueAddresses(
+          message.ccUsers?.map((user) => user.address) ?? [],
+          new Set([...ownAddresses, ...toKeys])
+        )
+      : [];
+
+  const sender = escapeHtml(message.fromUser?.name || message.from);
+  const header = `<div>On ${escapeHtml(message.date)}, ${sender} wrote:</div>`;
 
   return {
-    to,
+    ...senderValues,
+    to: toAddresses.join(", "),
+    cc: ccAddresses.join(", ") || undefined,
     subject: message.subject?.startsWith("Re:")
       ? message.subject
       : `Re: ${message.subject}`,
     replyTo,
+    body: quoteBlock(header, message),
   };
 }
 
@@ -40,6 +146,11 @@ export interface UseMailComposeOptions {
   accounts?: MailAccount[];
   onSent?: () => void;
   variant?: ComposeVariant;
+  allowScheduleSend?: boolean;
+  allowBulkSend?: boolean;
+  defaultBulkIntervalMs?: number;
+  recipientOptions?: MailRecipientOption[];
+  onAccountChange?: (account: MailAccount) => void;
 }
 
 export function useMailCompose(options: UseMailComposeOptions = {}) {
@@ -58,7 +169,10 @@ export function useMailCompose(options: UseMailComposeOptions = {}) {
 
   const reply = useCallback(
     (message: MailMessage, nextMode: ComposeMode = "reply") => {
-      const accountEmails = (options.accounts ?? []).map((a) => a.email);
+      const accountEmails = (options.accounts ?? []).flatMap((account) => [
+        account.email,
+        ...(account.identities?.map((identity) => identity.email) ?? []),
+      ]);
       openCompose(buildComposeInitial(message, nextMode, accountEmails), nextMode);
     },
     [options.accounts, openCompose]
@@ -75,6 +189,11 @@ export function useMailCompose(options: UseMailComposeOptions = {}) {
       mode={mode}
       onSent={options.onSent}
       variant={options.variant}
+      allowScheduleSend={options.allowScheduleSend}
+      allowBulkSend={options.allowBulkSend}
+      defaultBulkIntervalMs={options.defaultBulkIntervalMs}
+      recipientOptions={options.recipientOptions}
+      onAccountChange={options.onAccountChange}
     />
   );
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   type ColumnDef,
   type VisibilityState,
@@ -249,6 +249,7 @@ export function MailTable({
   onSelect,
   columns = DEFAULT_MAIL_COLUMNS,
   emptyVariant = "inbox",
+  toolbar,
   className,
 }: {
   messages: MailMessage[];
@@ -263,6 +264,7 @@ export function MailTable({
   onSelect: (id: number, checked: boolean) => void;
   columns?: MailColumnId[];
   emptyVariant?: "inbox" | "search";
+  toolbar?: ReactNode;
   className?: string;
 }) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
@@ -322,7 +324,8 @@ export function MailTable({
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <div className="flex justify-end">
+      <div className="flex items-center gap-2">
+        {toolbar && <div className="min-w-0 flex-1">{toolbar}</div>}
         <DropdownMenu>
           <DropdownMenuTrigger
             render={

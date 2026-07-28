@@ -20,6 +20,21 @@ export interface MailAttachment {
   attachmentId: string;
   contentId?: string;
   size?: number;
+  originalname?: string;
+  path?: string;
+  encoding?: string;
+  mimetype?: string;
+}
+
+export interface MailUploadedAttachment {
+  originalname: string;
+  filename: string;
+  path: string;
+  size: number | string;
+  encoding: string;
+  mimetype: string;
+  /** Microsoft sender compatibility; Google continues to use `mimetype`. */
+  mimeType?: string;
 }
 
 export interface MailLabel {
@@ -115,13 +130,21 @@ export interface MailMessage {
   updatedAt?: string;
 }
 
+export function isLocalMailDraft(
+  message: Pick<MailMessage, "isDraft" | "mailId" | "rawId">
+) {
+  return Boolean(message.isDraft && !message.mailId && !message.rawId);
+}
+
 export interface MailAccount {
   id: number;
   type: string;
   email: string;
   userId: number;
   settingId: number;
-  config?: Record<string, unknown>;
+  config?: Record<string, unknown> & {
+    signatures?: MailAccountSignature[];
+  };
   identities?: MailIdentity[];
 }
 
@@ -131,6 +154,8 @@ export interface MailIdentity {
   accountId: number;
   userId: number;
   isPrimary?: boolean;
+  name?: string;
+  verificationStatus?: string;
 }
 
 export interface MailUserRecord {
@@ -138,6 +163,34 @@ export interface MailUserRecord {
   nickname?: string;
   email?: string;
   username?: string;
+}
+
+export interface MailRecipientOption {
+  email: string;
+  name?: string;
+  description?: string;
+}
+
+export interface MailAccountSignature {
+  id: string;
+  name: string;
+  content: string;
+  default?: boolean;
+}
+
+export interface MailSignature {
+  id: string;
+  name: string;
+  content: string;
+  isDefault?: boolean;
+}
+
+export interface MailTemplate {
+  id: number | string;
+  name: string;
+  content: string;
+  /** Kept for callers migrating from the old local template format. */
+  subject?: string;
 }
 
 export interface MailSendPayload {
@@ -149,17 +202,44 @@ export interface MailSendPayload {
   cc?: string[];
   subject: string;
   body: string;
-  attachments?: {
-    originalname: string;
-    filename: string;
-    path: string;
-    size: string;
-    encoding: string;
-    mimetype: string;
-  }[];
+  attachments?: MailUploadedAttachment[];
   replyTo?: string;
   isDraft?: boolean;
   scheduleSendAt?: string;
+}
+
+export enum MailMassMessageStatus {
+  PENDING = "pending",
+  SENDING = "sending",
+  SENT = "sent",
+  FAILED = "failed",
+  CANCELED = "canceled",
+  SOME_SENT = "some_sent",
+}
+
+export interface MailMassMessage {
+  id: number;
+  parentId?: number | null;
+  interval: number;
+  message: MailSendPayload;
+  from: string;
+  to: string;
+  sendAt?: string | null;
+  status: MailMassMessageStatus;
+  result?: unknown;
+  children?: MailMassMessage[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MailMassListResponse {
+  rows: MailMassMessage[];
+  count: number;
+}
+
+export interface MailMassSendSettings {
+  /** Delay between two recipients, in milliseconds. */
+  interval?: number;
 }
 
 export type MailScope = "all" | "personal";

@@ -158,15 +158,24 @@
       "description": "Mail inbox, compose, detail, and label components backed by the NocoBase mail API.",
       "dependencies": [
         "@refinedev/core@^5.0.8",
+        "@tiptap/extension-link@^3.29.0",
+        "@tiptap/extension-placeholder@^3.29.0",
+        "@tiptap/extension-text-style@3.29.0",
+        "@tiptap/pm@^3.29.0",
+        "@tiptap/react@^3.29.0",
+        "@tiptap/starter-kit@^3.29.0",
         "date-fns@^4.1.0",
         "lucide-react@^0.487.0",
+        "react-router@^7.0.2",
         "sonner@^2.0.3"
       ],
       "registryDependencies": [
+        "alert-dialog",
         "avatar",
         "badge",
         "button",
         "checkbox",
+        "dialog",
         "dropdown-menu",
         "input",
         "label",
@@ -176,7 +185,8 @@
         "sheet",
         "skeleton",
         "tabs",
-        "textarea"
+        "textarea",
+        "toggle"
       ],
       "docs": "Requires a compatible NocoBase Starter with the mail plugin enabled. The mail API client uses the Starter's built-in API_URL, getNocoBaseHeaders, and NOCOBASE_TOKEN_KEY from @/providers/constants.",
       "source": {
