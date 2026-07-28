@@ -14,8 +14,7 @@ import {
   type AIChatComposerAction,
 } from "./components";
 import { AIChatWindow } from "./components/chat/chat-window";
-import { ChatDialog } from "./components/surfaces/chat-dialog";
-import { ChatSidePanel } from "./components/surfaces/chat-side-panel";
+import { ChatSurface } from "./components/surfaces/chat-surface";
 import { ChatSurfaceActions } from "./components/surfaces/chat-surface-actions";
 import {
   AIChatProvider,
@@ -166,19 +165,24 @@ function StarterGlobalAIChat({
     setExpanded(false);
     onOpenChange(false);
   };
+  const handleSurfaceOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) setExpanded(false);
+    onOpenChange(nextOpen);
+  };
 
   return (
     <>
-      <ChatSidePanel
-        open={open && !expanded}
-        onOpenChange={onOpenChange}
+      <ChatSurface
+        open={open}
+        variant={expanded ? "dialog" : "side-panel"}
+        onOpenChange={handleSurfaceOpenChange}
         width={DEFAULT_SIDE_PANEL_WIDTH}
         showCloseHandle={false}
       >
         <AIChatWindow
           headerActions={
             <ChatSurfaceActions
-              expanded={false}
+              expanded={expanded}
               onExpandedChange={setExpanded}
               onClose={closeChat}
             />
@@ -187,26 +191,7 @@ function StarterGlobalAIChat({
           enableAttachments
           attachmentActionIndex={1}
         />
-      </ChatSidePanel>
-      <ChatDialog
-        open={open && expanded}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) closeChat();
-        }}
-      >
-        <AIChatWindow
-          headerActions={
-            <ChatSurfaceActions
-              expanded
-              onExpandedChange={setExpanded}
-              onClose={closeChat}
-            />
-          }
-          composerActions={composerActions}
-          enableAttachments
-          attachmentActionIndex={1}
-        />
-      </ChatDialog>
+      </ChatSurface>
       <AIChatFloatingTrigger unreadCount={unreadCount} />
     </>
   );

@@ -6,7 +6,7 @@ import {
   useAIPageElementPicker,
   type AIChatComposerAction,
 } from "../components";
-import { Button } from "@/components/ui/button";
+import { PromptOutput } from "@/components/demo/prompt-output";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AIChatProvider, useAIChatBase } from "../providers";
-import { Check, Copy, Globe2, MousePointer2 } from "lucide-react";
+import { Globe2, MousePointer2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ChatContainer } from "./container-showcase";
 
@@ -95,7 +95,6 @@ function PromptGeneratorContent() {
   const [messagePresentation, setMessagePresentation] =
     useState<MessagePresentation>("transcript");
   const [capabilities, setCapabilities] = useState(DEFAULT_CAPABILITIES);
-  const [copied, setCopied] = useState(false);
 
   const previewActions = useMemo<AIChatComposerAction[]>(() => {
     const actions: AIChatComposerAction[] = [];
@@ -142,9 +141,9 @@ function PromptGeneratorContent() {
       embedded:
         "Render ChatInline inside the target content region and keep its width fluid within the parent container.",
       page: "Create a dedicated route and render ChatPage with AIChatWindow filling the available page content.",
-      "side-panel": `Use ChatSidePanelLayout on the right with a ${panelWidth}px panel. Opening chat must push the page narrower instead of covering it on desktop; mobile may use an overlay.`,
+      "side-panel": `Use ChatSurface with variant="side-panel" on the right and a ${panelWidth}px width. Opening chat must push the page narrower instead of covering it on desktop; mobile may use an overlay.`,
       dialog:
-        "Open ChatDialog from a page action. Keep conversation state in AIProvider/AIChatProvider so closing the dialog does not discard it.",
+        "Open ChatSurface with variant=\"dialog\" from a page action. Keep conversation state in AIProvider/AIChatProvider so closing the dialog does not discard it.",
       mobile:
         "Render ChatInline in the target region with a mobile-first width around 390px and preserve the same responsive AIChatWindow API.",
     }[placement];
@@ -182,7 +181,7 @@ Implementation requirements:
 - Wrap the application content with AIPageElementProvider when page-element picking is enabled.
 - Register selectable React components with useAIPageElement and return serializable business context from getContext.
 - Reuse AIChatWindow and the existing providers; do not duplicate message, streaming, reasoning, or tool-call state.
-- When the right panel is expandable, keep one AIChatProvider mounted while switching between ChatSidePanel and ChatDialog. Put ChatSurfaceActions in the window header.
+- When the right panel is expandable, render one AIChatWindow inside ChatSurface and change only its variant between "side-panel" and "dialog". Put ChatSurfaceActions in the window header.
 - Keep the generic Tool Call shell responsible for status, ASK approval, errors, and disclosure. Register business-specific bodies through AIToolRendererProvider.
 - Include the built-in specialized Tool Card renderers. This is part of the standard AI chat capability, not an optional page setting.
 - Register browser-side tool implementations through AIProvider.toolInvokers. After all interrupted calls are approved, the provider executes these handlers and sends their results when resuming the NocoBase conversation.
@@ -275,7 +274,7 @@ Implementation requirements:
   })();
 
   return (
-    <div className="grid items-start gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
+    <div className="grid items-start gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
       <Card className="gap-0 py-0">
         <CardHeader className="border-b py-4">
           <CardTitle className="text-base">Describe the integration</CardTitle>
@@ -405,32 +404,12 @@ Implementation requirements:
           </div>
         </Card>
 
-        <Card className="gap-0 overflow-hidden py-0">
-          <div className="flex items-center justify-between border-b px-4 py-3">
-            <div>
-              <div className="text-sm font-medium">
-                Generated implementation prompt
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Updates from the selected page, placement, and capabilities.
-              </div>
-            </div>
-            <Button
-              size="sm"
-              onClick={async () => {
-                await navigator.clipboard.writeText(prompt);
-                setCopied(true);
-                window.setTimeout(() => setCopied(false), 1500);
-              }}
-            >
-              {copied ? <Check /> : <Copy />}
-              {copied ? "Copied" : "Copy prompt"}
-            </Button>
-          </div>
-          <pre className="max-h-[760px] min-h-[520px] overflow-auto whitespace-pre-wrap bg-muted/25 p-5 font-mono text-xs leading-5 text-muted-foreground">
-            {prompt}
-          </pre>
-        </Card>
+        <PromptOutput
+          title="Generated implementation prompt"
+          description="Updates from the selected page, placement, and capabilities."
+          prompt={prompt}
+          promptClassName="max-h-[760px] min-h-[520px]"
+        />
       </div>
     </div>
   );

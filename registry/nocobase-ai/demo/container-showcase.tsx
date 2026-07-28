@@ -199,9 +199,9 @@ const containerComponent = (value: ChatContainer) => {
     case "page":
       return "<ChatPage />";
     case "side-panel":
-      return "<ChatSidePanelLayout />";
+      return '<ChatSurface variant="side-panel" />';
     case "dialog":
-      return "<ChatDialog />";
+      return '<ChatSurface variant="dialog" />';
     case "mobile":
       return "<ChatInline /> · 390px";
     default:

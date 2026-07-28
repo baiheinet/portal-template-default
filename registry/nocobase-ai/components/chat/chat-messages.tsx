@@ -9,7 +9,13 @@ import {
 } from "../../providers";
 import { cn } from "@/lib/utils";
 import { ArrowDown } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { ChatEmptyState } from "./chat-empty-state";
 import { ChatMessage } from "./chat-message";
 
@@ -81,6 +87,7 @@ export function AIChatMessageList({
   focusComposer,
 }: AIChatMessageListProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const bottomOffsetRef = useRef(0);
   const [atBottom, setAtBottom] = useState(true);
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
@@ -88,6 +95,31 @@ export function AIChatMessageList({
     if (!viewport) return;
     viewport.scrollTo({ top: viewport.scrollHeight, behavior });
   };
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    viewport.scrollTop = viewport.scrollHeight;
+    bottomOffsetRef.current = 0;
+  }, []);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      const maxScrollTop = Math.max(
+        0,
+        viewport.scrollHeight - viewport.clientHeight
+      );
+      viewport.scrollTop = Math.max(
+        0,
+        maxScrollTop - bottomOffsetRef.current
+      );
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (atBottom) scrollToBottom(status === "streaming" ? "auto" : "smooth");
@@ -107,9 +139,12 @@ export function AIChatMessageList({
         className="absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain"
         onScroll={(event) => {
           const element = event.currentTarget;
-          setAtBottom(
-            element.scrollHeight - element.scrollTop - element.clientHeight < 48
+          const bottomOffset = Math.max(
+            0,
+            element.scrollHeight - element.scrollTop - element.clientHeight
           );
+          bottomOffsetRef.current = bottomOffset;
+          setAtBottom(bottomOffset < 48);
         }}
       >
         {loading ? (

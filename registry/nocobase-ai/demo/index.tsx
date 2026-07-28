@@ -1,8 +1,7 @@
 import {
   AIChatWindow,
-  ChatDialog,
+  ChatSurface,
   ChatSurfaceActions,
-  ChatSidePanelLayout,
   useAIPageElementPicker,
   type AIChatComposerAction,
   type AIChatWindowProps,
@@ -19,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { AIChatProvider, useAIChatBase } from "../providers";
 import { Globe2, MousePointer2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { ContainerShowcase, type ChatContainer } from "./container-showcase";
 import { InteractionShowcase } from "./interaction-showcase";
 import { AIConfigurationGate } from "./configuration-gate";
@@ -106,6 +105,46 @@ const propRows = [
   ],
 ];
 
+const surfacePropRows = [
+  [
+    "variant",
+    '"side-panel" | "dialog"',
+    "required",
+    "Changes only the outer presentation while keeping the same chat window mounted.",
+  ],
+  ["open", "boolean", "required", "Controls whether the surface is open."],
+  [
+    "onOpenChange",
+    "(open: boolean) => void",
+    "required",
+    "Receives close requests from Escape, the dialog backdrop, or surface actions.",
+  ],
+  [
+    "side",
+    '"left" | "right"',
+    '"right"',
+    "Chooses the side used by the side-panel variant.",
+  ],
+  [
+    "width",
+    "number | string",
+    "450",
+    "Sets the width used by the side-panel variant.",
+  ],
+  [
+    "closeOnEscape",
+    "boolean",
+    "true",
+    "Allows Escape to close the active surface.",
+  ],
+  [
+    "showCloseHandle",
+    "boolean",
+    "false",
+    "Shows an outside close handle for the side-panel variant.",
+  ],
+];
+
 export function AIChatPage() {
   return (
     <AIConfigurationGate>
@@ -118,8 +157,7 @@ export function AIChatPage() {
 
 function AIChatPageContent() {
   const [container, setContainer] = useState<ChatContainer>("embedded");
-  const [sidePanelOpen, setSidePanelOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [surfaceOpen, setSurfaceOpen] = useState(false);
   const [webSearch, setWebSearch] = useState(false);
   const { id: chatId, addWorkContext, focusComposer } = useAIChatBase();
   const { registeredCount, startPicking } = useAIPageElementPicker();
@@ -132,9 +170,7 @@ function AIChatPageContent() {
         icon: <MousePointer2 />,
         disabled: registeredCount === 0,
         onClick: () => {
-          if (dialogOpen) {
-            setDialogOpen(false);
-            setSidePanelOpen(true);
+          if (surfaceOpen && container === "dialog") {
             setContainer("side-panel");
           }
           startPicking({
@@ -159,10 +195,11 @@ function AIChatPageContent() {
     [
       addWorkContext,
       chatId,
-      dialogOpen,
+      container,
       focusComposer,
       registeredCount,
       startPicking,
+      surfaceOpen,
       webSearch,
     ]
   );
@@ -178,35 +215,16 @@ function AIChatPageContent() {
   );
 
   const closeSurface = () => {
-    setSidePanelOpen(false);
-    setDialogOpen(false);
+    setSurfaceOpen(false);
   };
 
-  const sidePanelWindowProps: AIChatWindowProps = {
+  const surfaceWindowProps: AIChatWindowProps = {
     ...windowProps,
     headerActions: (
       <ChatSurfaceActions
-        expanded={false}
+        expanded={container === "dialog"}
         onExpandedChange={(expanded) => {
-          if (!expanded) return;
-          setSidePanelOpen(false);
-          setDialogOpen(true);
-        }}
-        onClose={closeSurface}
-      />
-    ),
-  };
-
-  const dialogWindowProps: AIChatWindowProps = {
-    ...windowProps,
-    headerActions: (
-      <ChatSurfaceActions
-        expanded={true}
-        onExpandedChange={(nextExpanded) => {
-          if (nextExpanded) return;
-          setDialogOpen(false);
-          setSidePanelOpen(true);
-          setContainer("side-panel");
+          setContainer(expanded ? "dialog" : "side-panel");
         }}
         onClose={closeSurface}
       />
@@ -215,17 +233,21 @@ function AIChatPageContent() {
 
   const selectContainer = (nextContainer: ChatContainer) => {
     setContainer(nextContainer);
-    setSidePanelOpen(nextContainer === "side-panel");
-    setDialogOpen(nextContainer === "dialog");
+    setSurfaceOpen(
+      nextContainer === "side-panel" || nextContainer === "dialog"
+    );
   };
 
   return (
-    <ChatSidePanelLayout
-      open={sidePanelOpen}
-      onOpenChange={setSidePanelOpen}
-      width={450}
-      panel={<AIChatWindow {...sidePanelWindowProps} />}
-      showCloseHandle={false}
+    <div
+      data-open={surfaceOpen && container === "side-panel"}
+      data-side="right"
+      className="chat-side-panel-layout @container min-w-0"
+      style={
+        {
+          "--chat-side-panel-width": "450px",
+        } as CSSProperties
+      }
     >
       <div className="space-y-14 pb-12">
         <section className="flex flex-wrap items-start justify-between gap-5 border-b pb-8">
@@ -280,46 +302,66 @@ function AIChatPageContent() {
         <section className="space-y-5">
           <SectionTitle
             eyebrow="Component API"
+            title="ChatSurface props"
+            description="Use variant as the single presentation switch. The child AIChatWindow remains the same React instance while the surface changes shape."
+          />
+          <PropsTable rows={surfacePropRows} />
+        </section>
+
+        <section className="space-y-5">
+          <SectionTitle
+            eyebrow="Component API"
             title="AIChatWindow props"
             description="The core window stays reusable while business pages provide placement, composer actions, and tool-approval behavior."
           />
-          <Card className="gap-0 overflow-hidden py-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Prop</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Default</TableHead>
-                  <TableHead>Description</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {propRows.map(([name, type, defaultValue, description]) => (
-                  <TableRow key={name}>
-                    <TableCell className="font-mono text-xs font-medium">
-                      {name}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {type}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {defaultValue}
-                    </TableCell>
-                    <TableCell className="min-w-80 whitespace-normal text-muted-foreground">
-                      {description}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
+          <PropsTable rows={propRows} />
         </section>
 
-        <ChatDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <AIChatWindow {...dialogWindowProps} />
-        </ChatDialog>
       </div>
-    </ChatSidePanelLayout>
+      <ChatSurface
+        open={surfaceOpen}
+        variant={container === "dialog" ? "dialog" : "side-panel"}
+        onOpenChange={setSurfaceOpen}
+        width={450}
+      >
+        <AIChatWindow {...surfaceWindowProps} />
+      </ChatSurface>
+    </div>
+  );
+}
+
+function PropsTable({ rows }: { rows: string[][] }) {
+  return (
+    <Card className="gap-0 overflow-hidden py-0">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Prop</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Default</TableHead>
+            <TableHead>Description</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map(([name, type, defaultValue, description]) => (
+            <TableRow key={name}>
+              <TableCell className="font-mono text-xs font-medium">
+                {name}
+              </TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">
+                {type}
+              </TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">
+                {defaultValue}
+              </TableCell>
+              <TableCell className="min-w-80 whitespace-normal text-muted-foreground">
+                {description}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
   );
 }
 

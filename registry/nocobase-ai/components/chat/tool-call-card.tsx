@@ -131,9 +131,7 @@ export function ToolCallCard({
   const [deciding, setDeciding] = useState(false);
   const renderer = useAIToolRenderer(getToolCallName(part));
   const Renderer = renderer?.component;
-  const [open, setOpen] = useState(
-    part.state === "output-error" || Boolean(Renderer)
-  );
+  const [open, setOpen] = useState(false);
   const toolStatus = getStatus(part);
   const approvalRequired =
     resolvedApproval?.required === true && approvalStatus === "pending";
@@ -151,12 +149,6 @@ export function ToolCallCard({
   useEffect(() => {
     setApprovalStatus(resolvedApproval?.status ?? "pending");
   }, [resolvedApproval?.status]);
-
-  useEffect(() => {
-    if (part.state === "output-error") {
-      setOpen(true);
-    }
-  }, [part.state]);
 
   const decide = async (
     decision: "approve" | "reject" | "edit",

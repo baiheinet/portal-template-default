@@ -61,6 +61,22 @@ Frontend Tools are page-local browser actions and remain separate from Form fill
 
 Pass application-specific message renderers through `NocoBaseAIRootProvider.toolRenderers`. Built-in renderers remain available automatically. A custom renderer receives the Tool part, disabled state, edit/approve/reject actions, and a composer-focus callback.
 
+## Chat surfaces
+
+Use one `AIChatWindow` inside `ChatSurface` when a global conversation can switch between a side panel and an expanded dialog. Change only the `variant` prop so the message list, composer, scroll position, and renderer state remain mounted:
+
+```tsx
+<ChatSurface
+  open={open}
+  variant={expanded ? "dialog" : "side-panel"}
+  onOpenChange={setOpen}
+>
+  <AIChatWindow />
+</ChatSurface>
+```
+
+`ChatDialog` and `ChatSidePanel` remain available as convenience wrappers for fixed, non-switching placements.
+
 ## Local Registry development
 
 - `pnpm registry:build` regenerates `registry.json` and the static shadcn Registry output.

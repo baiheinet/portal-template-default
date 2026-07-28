@@ -1,5 +1,7 @@
+import { getRuntimeApiUrl } from "./runtime-config";
+
 const rawApiUrl =
-  import.meta.env.NOCOBASE_API_URL ?? "http://127.0.0.1:13000/api";
+  getRuntimeApiUrl() ?? "http://127.0.0.1:13000/api";
 
 const getDefaultProxyTarget = (apiUrl?: string) => {
   if (!apiUrl || apiUrl.startsWith("/")) return undefined;
@@ -35,6 +37,7 @@ const toProxyRelativeUrl = (url: string, target?: string) => {
 export const API_URL = toProxyRelativeUrl(rawApiUrl, proxyTarget);
 export const API_ORIGIN = getDefaultProxyTarget(rawApiUrl);
 export const NOCOBASE_TOKEN_KEY = "nocobase-auth-token";
+export const NOCOBASE_AUTHENTICATOR_KEY = "nocobase-authenticator";
 export const NOCOBASE_ROLE_KEY = "nocobase-auth-role";
 export const NOCOBASE_LOCALE_KEY = "nocobase-locale";
 export const NOCOBASE_AUTHENTICATOR =

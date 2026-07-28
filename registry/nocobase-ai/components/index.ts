@@ -13,6 +13,11 @@ export {
 } from "./chat/chat-messages";
 export { AIModelSelectOptions } from "./chat/model-select-options";
 export { ChatDialog } from "./surfaces/chat-dialog";
+export {
+  ChatSurface,
+  type ChatSurfaceProps,
+  type ChatSurfaceVariant,
+} from "./surfaces/chat-surface";
 export { ChatSurfaceActions } from "./surfaces/chat-surface-actions";
 export { ChatInline } from "./surfaces/chat-inline";
 export { ChatPage } from "./surfaces/chat-page";
