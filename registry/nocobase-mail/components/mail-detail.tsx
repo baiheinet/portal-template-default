@@ -21,6 +21,13 @@ import {
 import { MailAttachmentList } from "./mail-attachment-list";
 import { MailLabelsEditor } from "./mail-labels-editor";
 import { MailNoteEditor } from "./mail-note-editor";
+import {
+  collectInlineContentIds,
+  filterInlineAttachments,
+  replaceInlineImageSources,
+} from "./mail-inline-images";
+import { mailApi } from "./mail-api";
+import { canReplyAll } from "./use-mail-compose";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -56,8 +63,55 @@ function initials(name: string) {
     .join("");
 }
 
-function MailHtmlBody({ html }: { html: string }) {
+function MailHtmlBody({
+  html,
+  messageId,
+}: {
+  html: string;
+  messageId: number | string;
+}) {
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const [resolvedHtml, setResolvedHtml] = useState(html);
+
+  useEffect(() => {
+    const contentIds = collectInlineContentIds(html);
+    if (!contentIds.length) {
+      setResolvedHtml(html);
+      return;
+    }
+
+    let active = true;
+    const objectUrls: string[] = [];
+    void Promise.all(
+      contentIds.map(async (contentId) => {
+        try {
+          const blob = await mailApi.fetchInlineImage(messageId, contentId);
+          const objectUrl = URL.createObjectURL(blob);
+          if (!active) {
+            URL.revokeObjectURL(objectUrl);
+            return undefined;
+          }
+          objectUrls.push(objectUrl);
+          return [contentId, objectUrl] as const;
+        } catch {
+          return undefined;
+        }
+      })
+    ).then((sources) => {
+      if (!active) return;
+      const sourceMap = new Map(
+        sources.filter(
+          (source): source is readonly [string, string] => Boolean(source)
+        )
+      );
+      setResolvedHtml(replaceInlineImageSources(html, sourceMap));
+    });
+
+    return () => {
+      active = false;
+      objectUrls.forEach((objectUrl) => URL.revokeObjectURL(objectUrl));
+    };
+  }, [html, messageId]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -93,14 +147,14 @@ function MailHtmlBody({ html }: { html: string }) {
       clearTimeout(fallback);
       observer?.disconnect();
     };
-  }, [html]);
+  }, [resolvedHtml]);
 
   return (
     <iframe
       ref={frameRef}
       title="Email content"
       sandbox="allow-same-origin"
-      srcDoc={html}
+      srcDoc={resolvedHtml}
       className="w-full border-0 bg-white transition-[height] duration-200"
       style={{ minHeight: 240 }}
     />
@@ -136,14 +190,24 @@ function MailThreadMessage({
   expanded,
   onToggle,
   collapsible = true,
+  onReply,
+  onReplyAll,
+  onForward,
 }: {
   message: MailMessage;
   expanded: boolean;
   onToggle: () => void;
   collapsible?: boolean;
+  onReply?: (message: MailMessage) => void;
+  onReplyAll?: (message: MailMessage) => void;
+  onForward?: (message: MailMessage) => void;
 }) {
   const name = displayName(message);
   const body = message.bodyHtml || message.bodyText || "";
+  const visibleAttachments = filterInlineAttachments(
+    message.attachments ?? [],
+    message.bodyHtml || ""
+  );
   const isPlainText = !message.bodyHtml && Boolean(message.bodyText);
   const snippet = (message.bodyText || "").replace(/\s+/g, " ").trim().slice(0, 90);
   const isExpanded = collapsible ? expanded : true;
@@ -176,7 +240,7 @@ function MailThreadMessage({
           </span>
         )}
       </span>
-      {message.attachments?.length ? (
+      {visibleAttachments.length ? (
         <Paperclip className="size-3.5 shrink-0 text-muted-foreground" />
       ) : null}
       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
@@ -221,7 +285,7 @@ function MailThreadMessage({
                 {message.bodyText}
               </pre>
             ) : (
-              <MailHtmlBody html={body} />
+              <MailHtmlBody html={body} messageId={message.id} />
             )
           ) : (
             <p className="py-2 text-sm text-muted-foreground">
@@ -229,13 +293,33 @@ function MailThreadMessage({
             </p>
           )}
 
-          {message.attachments?.length ? (
+          {visibleAttachments.length ? (
             <MailAttachmentList
               messageId={message.id}
-              attachments={message.attachments}
+              attachments={visibleAttachments}
               className="mt-4"
             />
           ) : null}
+
+          {(onReply || onReplyAll || onForward) && (
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              {onReply && (
+                <Button variant="outline" size="sm" onClick={() => onReply(message)}>
+                  <CornerUpLeft /> Reply
+                </Button>
+              )}
+              {onReplyAll && canReplyAll(message) && (
+                <Button variant="outline" size="sm" onClick={() => onReplyAll(message)}>
+                  <CornerUpRight /> Reply all
+                </Button>
+              )}
+              {onForward && (
+                <Button variant="outline" size="sm" onClick={() => onForward(message)}>
+                  <Forward /> Forward
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -379,14 +463,16 @@ export function MailDetail({
             >
               <CornerUpLeft />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              title="Reply all"
-              onClick={() => onReplyAll?.(message)}
-            >
-              <CornerUpRight />
-            </Button>
+            {canReplyAll(message) && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Reply all"
+                onClick={() => onReplyAll?.(message)}
+              >
+                <CornerUpRight />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon-sm"
@@ -449,6 +535,9 @@ export function MailDetail({
             expanded={expandedIds.has(threadMessage.id)}
             onToggle={() => toggleExpanded(threadMessage.id)}
             collapsible={thread.length > 1}
+            onReply={isScheduled || isProviderDraft ? undefined : onReply}
+            onReplyAll={isScheduled || isProviderDraft ? undefined : onReplyAll}
+            onForward={isScheduled || isProviderDraft ? undefined : onForward}
           />
         ))}
       </div>

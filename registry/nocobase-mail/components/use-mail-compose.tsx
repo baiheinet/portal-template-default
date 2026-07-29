@@ -36,10 +36,61 @@ function quoteBlock(header: string, message: MailMessage) {
   ].join("");
 }
 
+function stripHtml(value: string) {
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function composeReference(message: MailMessage) {
+  return {
+    from: message.fromUser?.name || message.from,
+    date: message.date,
+    subject: message.subject,
+    preview: message.bodyText || stripHtml(message.bodyHtml || ""),
+  };
+}
+
+function addressList(
+  users: Array<{ address: string }> | undefined,
+  raw: string | undefined
+) {
+  if (users?.length) return users.map((user) => user.address);
+  return (raw || "").split(/[,;\n]/).map((value) => value.trim()).filter(Boolean);
+}
+
+function normalizeAddress(value: string) {
+  return (value.match(/<([^>]+)>/)?.[1] || value).trim().toLocaleLowerCase();
+}
+
+export function canReplyAll(message: MailMessage, accountEmails: string[] = []) {
+  const own = new Set(
+    [message.email, message.identityEmail, ...accountEmails]
+      .filter((value): value is string => Boolean(value))
+      .map(normalizeAddress)
+  );
+  const participants = uniqueAddresses(
+    [
+      message.from,
+      ...addressList(message.toUsers, message.to),
+      ...addressList(message.ccUsers, message.cc),
+    ],
+    own
+  );
+  return participants.length > 1;
+}
+
 function uniqueAddresses(addresses: Array<string | undefined>, excluded = new Set<string>()) {
   const seen = new Set<string>();
   return addresses.filter((address): address is string => {
-    const normalized = address?.trim().toLocaleLowerCase();
+    const normalized = address ? normalizeAddress(address) : "";
     if (!normalized || excluded.has(normalized) || seen.has(normalized)) return false;
     seen.add(normalized);
     return true;
@@ -106,23 +157,28 @@ export function buildComposeInitial(
       ...senderValues,
       subject: `Fwd: ${message.subject}`,
       body: quoteBlock(header, message),
+      reference: composeReference(message),
     };
   }
 
   const replyTo = message.replyTo || message.mailId;
-  const ownAddresses = new Set(accountEmails.map((email) => email.toLocaleLowerCase()));
+  const ownAddresses = new Set(
+    [message.email, message.identityEmail, ...accountEmails]
+      .filter((value): value is string => Boolean(value))
+      .map(normalizeAddress)
+  );
   const toAddresses =
     mode === "replyAll"
       ? uniqueAddresses(
-          [message.from, ...(message.toUsers?.map((user) => user.address) ?? [])],
+          [message.from, ...addressList(message.toUsers, message.to)],
           ownAddresses
         )
       : [message.from];
-  const toKeys = new Set(toAddresses.map((address) => address.toLocaleLowerCase()));
+  const toKeys = new Set(toAddresses.map(normalizeAddress));
   const ccAddresses =
     mode === "replyAll"
       ? uniqueAddresses(
-          message.ccUsers?.map((user) => user.address) ?? [],
+          addressList(message.ccUsers, message.cc),
           new Set([...ownAddresses, ...toKeys])
         )
       : [];
@@ -139,6 +195,7 @@ export function buildComposeInitial(
       : `Re: ${message.subject}`,
     replyTo,
     body: quoteBlock(header, message),
+    reference: composeReference(message),
   };
 }
 
@@ -148,6 +205,7 @@ export interface UseMailComposeOptions {
   variant?: ComposeVariant;
   allowScheduleSend?: boolean;
   allowBulkSend?: boolean;
+  autoSaveDraft?: boolean;
   defaultBulkIntervalMs?: number;
   recipientOptions?: MailRecipientOption[];
   onAccountChange?: (account: MailAccount) => void;
@@ -191,6 +249,7 @@ export function useMailCompose(options: UseMailComposeOptions = {}) {
       variant={options.variant}
       allowScheduleSend={options.allowScheduleSend}
       allowBulkSend={options.allowBulkSend}
+      autoSaveDraft={options.autoSaveDraft}
       defaultBulkIntervalMs={options.defaultBulkIntervalMs}
       recipientOptions={options.recipientOptions}
       onAccountChange={options.onAccountChange}

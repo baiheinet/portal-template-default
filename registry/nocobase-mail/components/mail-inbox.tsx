@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { PenLine } from "lucide-react";
 import { toast } from "sonner";
 import type {
   MailAccount,
@@ -17,6 +18,7 @@ import { MailToolbar } from "./mail-toolbar";
 import { MailTable } from "./mail-table";
 import { MailDetail } from "./mail-detail";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -375,6 +377,14 @@ export function MailInbox({
         onSelect={toggleSelect}
         columns={columns}
         emptyVariant={search ? "search" : "inbox"}
+        trailingAction={
+          showToolbar ? (
+            <Button size="sm" onClick={() => openCompose()}>
+              <PenLine />
+              Compose
+            </Button>
+          ) : undefined
+        }
         toolbar={
           showToolbar ? (
             <MailToolbar
@@ -390,7 +400,6 @@ export function MailInbox({
               onDeleteForever={() => setPermanentDeleteIds(Array.from(selectedIds))}
               onTrash={handleBulkTrash}
               onClearSelection={() => setSelectedIds(new Set())}
-              onCompose={() => openCompose()}
               actions={toolbarActions}
             />
           ) : undefined

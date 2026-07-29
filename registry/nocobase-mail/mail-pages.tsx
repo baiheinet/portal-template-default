@@ -1,17 +1,24 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { Settings } from "lucide-react";
 import {
   MailBoxType,
   MailComposeForm,
   MailFilters,
   MailInbox,
   MailMassTracking,
+  MailSettingsDrawer,
   type ComposeInitialValues,
   type MailColumnId,
   type MailFilterValue,
-  type MailScope,
 } from "./components";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  MailShowcasePage,
+  MailShowcaseSection,
+} from "./components/mail-showcase-layout";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { MailRecipientSelectionDemo } from "./mail-demo-pages";
 
 const PERSONAL_COLUMNS: MailColumnId[] = [
   "from",
@@ -22,19 +29,9 @@ const PERSONAL_COLUMNS: MailColumnId[] = [
   "isRead",
   "labels",
 ];
-const ALL_COLUMNS: MailColumnId[] = [
-  "from",
-  "user",
-  "email",
-  "subject",
-  "boxType",
-  "date",
-  "isRead",
-];
-
 export function MailManagerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const scope: MailScope = searchParams.get("scope") === "all" ? "all" : "personal";
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const filterValue = useMemo<MailFilterValue>(() => {
     const folder = searchParams.get("folder");
     const label = Number(searchParams.get("label"));
@@ -49,9 +46,8 @@ export function MailManagerPage() {
     };
   }, [searchParams]);
 
-  const updateParams = (next: MailFilterValue, nextScope = scope) => {
+  const updateParams = (next: MailFilterValue) => {
     const params = new URLSearchParams();
-    if (nextScope === "all") params.set("scope", "all");
     if (next.boxType) params.set("folder", next.boxType);
     if (next.isRead !== undefined) {
       params.set("read", next.isRead ? "read" : "unread");
@@ -62,52 +58,50 @@ export function MailManagerPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-[-0.035em]">Mail</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Read, reply to, and manage messages from your connected mailboxes.
-        </p>
-      </div>
-      <div className="flex justify-end">
-        <Tabs
-          value={scope}
-          onValueChange={(value) =>
-            updateParams(filterValue, (value as MailScope) ?? "personal")
-          }
-        >
-          <TabsList>
-            <TabsTrigger value="personal">My inbox</TabsTrigger>
-            <TabsTrigger value="all">All users</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-      <div className="grid min-h-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <aside className="self-start rounded-xl border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] lg:sticky lg:top-4">
-          <div className="mb-3">
-            <h3 className="text-sm font-semibold">Filters</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Narrow the mailbox without leaving the workspace.
-            </p>
-          </div>
-          <MailFilters
-            value={filterValue}
-            onChange={updateParams}
-            orientation="vertical"
-          />
-        </aside>
-        <main className="min-w-0">
-          <MailInbox
-            scope={scope}
-            boxType={filterValue.boxType}
-            isRead={filterValue.isRead}
-            labelId={filterValue.labelId}
-            filter={filterValue.isTodo ? { isTodo: true } : undefined}
-            columns={scope === "all" ? ALL_COLUMNS : PERSONAL_COLUMNS}
-          />
-        </main>
-      </div>
-    </div>
+    <MailShowcasePage
+      title="My mailbox"
+      description="Read, reply to, and manage messages from your connected mailboxes."
+      badge="Personal mail"
+    >
+      <MailShowcaseSection
+        eyebrow="Personal mailbox"
+        title="Browse and work through your messages"
+        description="Use tree filters to find messages, then read, reply, and manage them from the inbox."
+      >
+        <div className="grid min-h-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <aside className="self-start rounded-xl border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] lg:sticky lg:top-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold">Filters</h3>
+            </div>
+            <MailFilters
+              value={filterValue}
+              onChange={updateParams}
+              orientation="vertical"
+            />
+          </aside>
+          <main className="min-w-0">
+            <MailInbox
+              scope="personal"
+              boxType={filterValue.boxType}
+              isRead={filterValue.isRead}
+              labelId={filterValue.labelId}
+              filter={filterValue.isTodo ? { isTodo: true } : undefined}
+              columns={PERSONAL_COLUMNS}
+              toolbarActions={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <Settings /> Settings
+                </Button>
+              }
+            />
+          </main>
+        </div>
+      </MailShowcaseSection>
+      <MailSettingsDrawer open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </MailShowcasePage>
   );
 }
 
@@ -115,41 +109,36 @@ export function MailBulkPage() {
   const [jobsRevision, setJobsRevision] = useState(0);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-[-0.035em]">Bulk mail</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Send one separate message per recipient and track every delivery job.
-        </p>
-      </div>
+    <MailShowcasePage
+      title="Bulk mail"
+      description="Send one separate message per recipient and track every delivery job."
+      badge="Bulk delivery"
+    >
+      <MailShowcaseSection
+        eyebrow="Bulk composer"
+        title="Prepare one message for multiple recipients"
+        description="Add at least two recipients. Each recipient receives an individual message."
+      >
+        <Card className="gap-0 py-0">
+          <CardContent className="max-w-2xl p-6">
+            <MailComposeForm
+              bulkOnly
+              allowScheduleSend={false}
+              allowBulkSend
+              onSent={() => setJobsRevision((revision) => revision + 1)}
+            />
+          </CardContent>
+        </Card>
+      </MailShowcaseSection>
 
-      <section className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
-        <div>
-          <h3 className="text-lg font-semibold">Bulk send</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add at least two recipients. Each recipient receives an individual message.
-          </p>
-        </div>
-        <div className="max-w-2xl">
-          <MailComposeForm
-            bulkOnly
-            allowScheduleSend={false}
-            allowBulkSend
-            onSent={() => setJobsRevision((revision) => revision + 1)}
-          />
-        </div>
-      </section>
-
-      <section className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
-        <div>
-          <h3 className="text-lg font-semibold">Bulk jobs</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track delivery progress, cancel active jobs, and retry failed recipients.
-          </p>
-        </div>
+      <MailShowcaseSection
+        eyebrow="Delivery status"
+        title="Track bulk jobs"
+        description="Track delivery progress, cancel active jobs, and retry failed recipients."
+      >
         <MailMassTracking key={jobsRevision} />
-      </section>
-    </div>
+      </MailShowcaseSection>
+    </MailShowcasePage>
   );
 }
 
@@ -167,21 +156,43 @@ export function MailComposePage() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <div>
-        <h2 className="text-3xl font-semibold tracking-[-0.035em]">New message</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Compose from a connected mailbox, or prefill fields from the URL.
-        </p>
-      </div>
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
-        <MailComposeForm
-          initial={initial}
-          showCancel
-          onSent={() => navigate("/admin/mail")}
-          onCancel={() => navigate("/admin/mail")}
-        />
-      </div>
-    </div>
+    <MailShowcasePage
+      title="Compose and send"
+      description="Compose directly, send to selected user records, or reply from a live mail table."
+      badge="Sending patterns"
+    >
+      <MailShowcaseSection
+        eyebrow="Standalone composer"
+        title="Compose a message"
+        description="Send from a connected mailbox or prefill fields through URL parameters."
+      >
+        <Card className="gap-0 py-0">
+          <CardContent className="max-w-2xl p-6">
+            <MailComposeForm
+              initial={initial}
+              showCancel
+              onSent={() => navigate("/admin/mail")}
+              onCancel={() => navigate("/admin/mail")}
+            />
+          </CardContent>
+        </Card>
+      </MailShowcaseSection>
+
+      <MailShowcaseSection
+        eyebrow="Record-driven sending"
+        title="Send to selected users"
+        description="Select one or more user records and open compose with their addresses in To."
+      >
+        <MailRecipientSelectionDemo />
+      </MailShowcaseSection>
+
+      <MailShowcaseSection
+        eyebrow="Reply workflow"
+        title="Reply from a mail table"
+        description="Open any message to try Reply, conditional Reply all, and Forward."
+      >
+        <MailInbox scope="personal" columns={PERSONAL_COLUMNS} />
+      </MailShowcaseSection>
+    </MailShowcasePage>
   );
 }

@@ -23,6 +23,7 @@ export interface MailComposeAttachmentsProps {
   value: MailUploadedAttachment[];
   onChange: (value: MailUploadedAttachment[]) => void;
   onBusyChange?: (busy: boolean) => void;
+  onDirty?: () => void;
   disabled?: boolean;
 }
 
@@ -30,6 +31,7 @@ export function MailComposeAttachments({
   value,
   onChange,
   onBusyChange,
+  onDirty,
   disabled,
 }: MailComposeAttachmentsProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -93,6 +95,7 @@ export function MailComposeAttachments({
       status: "uploading" as const,
       file,
     }));
+    if (additions.length) onDirty?.();
     setRows((prev) => [...prev, ...additions]);
     additions.forEach((row) => void upload(row.id, row.file));
   };
@@ -137,7 +140,10 @@ export function MailComposeAttachments({
               <button
                 type="button"
                 title="Remove attachment"
-                onClick={() => setRows((prev) => prev.filter((item) => item.id !== row.id))}
+                onClick={() => {
+                  onDirty?.();
+                  setRows((prev) => prev.filter((item) => item.id !== row.id));
+                }}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <X className="size-3" />

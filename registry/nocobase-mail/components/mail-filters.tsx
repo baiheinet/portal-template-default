@@ -39,8 +39,7 @@ export interface MailFiltersProps {
   className?: string;
 }
 
-const FOLDERS: Array<{ value: MailBoxType | "all"; label: string; icon: LucideIcon }> = [
-  { value: "all", label: "All folders", icon: FolderTree },
+const FOLDERS: Array<{ value: MailBoxType; label: string; icon: LucideIcon }> = [
   { value: MailBoxType.IN, label: "Inbox", icon: Inbox },
   { value: MailBoxType.OUT, label: "Sent", icon: Send },
   { value: MailBoxType.DRAFT, label: "Drafts", icon: FileText },
@@ -135,11 +134,11 @@ export function MailFilters({
               key={folder.value}
               label={folder.label}
               icon={folder.icon}
-              selected={(value.boxType ?? "all") === folder.value}
+              selected={value.boxType === folder.value}
               onClick={() =>
                 onChange({
                   ...value,
-                  boxType: folder.value === "all" ? undefined : folder.value,
+                  boxType: value.boxType === folder.value ? undefined : folder.value,
                 })
               }
             />
@@ -148,55 +147,48 @@ export function MailFilters({
 
         <TreeGroup label="Status" icon={MailOpen}>
           <TreeItem
-            label="Any status"
-            icon={Mail}
-            selected={value.isRead === undefined}
-            onClick={() => onChange({ ...value, isRead: undefined })}
-          />
-          <TreeItem
             label="Unread"
             icon={Mail}
             selected={value.isRead === false}
-            onClick={() => onChange({ ...value, isRead: false })}
+            onClick={() =>
+              onChange({ ...value, isRead: value.isRead === false ? undefined : false })
+            }
           />
           <TreeItem
             label="Read"
             icon={MailOpen}
             selected={value.isRead === true}
-            onClick={() => onChange({ ...value, isRead: true })}
+            onClick={() =>
+              onChange({ ...value, isRead: value.isRead === true ? undefined : true })
+            }
           />
         </TreeGroup>
 
         <TreeGroup label="Labels" icon={Tags}>
-          <TreeItem
-            label="Any label"
-            icon={Tags}
-            selected={!value.labelId}
-            onClick={() => onChange({ ...value, labelId: undefined })}
-          />
           {labels.map((label) => (
             <TreeItem
               key={label.id}
               label={label.label}
               icon={Tag}
               selected={value.labelId === label.id}
-              onClick={() => onChange({ ...value, labelId: label.id })}
+              onClick={() =>
+                onChange({
+                  ...value,
+                  labelId: value.labelId === label.id ? undefined : label.id,
+                })
+              }
             />
           ))}
         </TreeGroup>
 
         <TreeGroup label="Flags" icon={Star}>
           <TreeItem
-            label="All mail"
-            icon={Mail}
-            selected={!value.isTodo}
-            onClick={() => onChange({ ...value, isTodo: undefined })}
-          />
-          <TreeItem
             label="Starred"
             icon={Star}
             selected={Boolean(value.isTodo)}
-            onClick={() => onChange({ ...value, isTodo: true })}
+            onClick={() =>
+              onChange({ ...value, isTodo: value.isTodo ? undefined : true })
+            }
           />
         </TreeGroup>
 
@@ -214,45 +206,61 @@ export function MailFilters({
       className={cn("flex flex-wrap items-center gap-2", className)}
     >
       <Select
-        value={value.boxType ?? "all"}
-        onValueChange={(next) => onChange({ ...value, boxType: next === "all" ? undefined : next as MailBoxType })}
+        value={value.boxType}
+        onValueChange={(next) =>
+          onChange({
+            ...value,
+            boxType: value.boxType === next ? undefined : next as MailBoxType,
+          })
+        }
       >
-        <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="h-8 w-40"><SelectValue placeholder="Folder" /></SelectTrigger>
         <SelectContent>
           {FOLDERS.map((folder) => <SelectItem key={folder.value} value={folder.value}>{folder.label}</SelectItem>)}
         </SelectContent>
       </Select>
 
       <Select
-        value={value.isRead === undefined ? "all" : value.isRead ? "read" : "unread"}
-        onValueChange={(next) => onChange({ ...value, isRead: next === "all" ? undefined : next === "read" })}
+        value={value.isRead === undefined ? undefined : value.isRead ? "read" : "unread"}
+        onValueChange={(next) => {
+          const nextValue = next === "read";
+          onChange({
+            ...value,
+            isRead: value.isRead === nextValue ? undefined : nextValue,
+          });
+        }}
       >
-        <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="h-8 w-32"><SelectValue placeholder="Status" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Any status</SelectItem>
           <SelectItem value="unread">Unread</SelectItem>
           <SelectItem value="read">Read</SelectItem>
         </SelectContent>
       </Select>
 
       <Select
-        value={value.labelId ? String(value.labelId) : "all"}
-        onValueChange={(next) => onChange({ ...value, labelId: next === "all" ? undefined : Number(next) })}
+        value={value.labelId ? String(value.labelId) : undefined}
+        onValueChange={(next) => {
+          const nextValue = Number(next);
+          onChange({
+            ...value,
+            labelId: value.labelId === nextValue ? undefined : nextValue,
+          });
+        }}
       >
-        <SelectTrigger className="h-8 w-36"><SelectValue placeholder="Any label" /></SelectTrigger>
+        <SelectTrigger className="h-8 w-36"><SelectValue placeholder="Label" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Any label</SelectItem>
           {labels.map((label) => <SelectItem key={label.id} value={String(label.id)}>{label.label}</SelectItem>)}
         </SelectContent>
       </Select>
 
       <Select
-        value={value.isTodo ? "todo" : "all"}
-        onValueChange={(next) => onChange({ ...value, isTodo: next === "todo" ? true : undefined })}
+        value={value.isTodo ? "todo" : undefined}
+        onValueChange={() =>
+          onChange({ ...value, isTodo: value.isTodo ? undefined : true })
+        }
       >
-        <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="h-8 w-32"><SelectValue placeholder="Flag" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All mail</SelectItem>
           <SelectItem value="todo">Starred</SelectItem>
         </SelectContent>
       </Select>

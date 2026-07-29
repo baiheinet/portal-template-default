@@ -1,6 +1,7 @@
 import { nocobaseClient } from "@/lib/nocobase/client";
 import type {
   MailAccount,
+  MailIdentity,
   MailLabel,
   MailListParams,
   MailListResponse,
@@ -60,7 +61,9 @@ export const mailApi = {
           pageSize: params.pageSize ?? 20,
           subjectMerge: true,
           appends: "user",
-          ...(Object.keys(filter).length ? { filter: JSON.stringify(filter) } : {}),
+          ...(Object.keys(filter).length
+            ? { filter: JSON.stringify(filter) }
+            : {}),
           sort: params.sort ?? "-relatedMessageLatestDate",
         },
         unwrap: "none",
@@ -74,7 +77,10 @@ export const mailApi = {
     });
   },
 
-  trashMessages(ids: (number | string)[], moveToTrash = true): Promise<unknown> {
+  trashMessages(
+    ids: (number | string)[],
+    moveToTrash = true
+  ): Promise<unknown> {
     return nocobaseClient.action("mailMessages", "trash", {
       body: { filterByTk: ids, moveToTrash },
     });
@@ -114,22 +120,28 @@ export const mailApi = {
     });
   },
 
-  async listMassMessages(parentId: number | null = null): Promise<MailMassListResponse> {
+  async listMassMessages(
+    parentId: number | null = null
+  ): Promise<MailMassListResponse> {
     const pageSize = 100;
     const rows: MailMassMessage[] = [];
     let page = 1;
     let count = 0;
 
     do {
-      const payload = await nocobaseClient.action<unknown>("mailMassMessages", "list", {
-        query: {
-          page,
-          pageSize,
-          filter: JSON.stringify({ parentId }),
-          sort: "-createdAt",
-        },
-        unwrap: "none",
-      });
+      const payload = await nocobaseClient.action<unknown>(
+        "mailMassMessages",
+        "list",
+        {
+          query: {
+            page,
+            pageSize,
+            filter: JSON.stringify({ parentId }),
+            sort: "-createdAt",
+          },
+          unwrap: "none",
+        }
+      );
       const parsed = parseListResponse(payload);
       const nextRows = parsed.rows as unknown as MailMassMessage[];
       rows.push(...nextRows);
@@ -156,17 +168,17 @@ export const mailApi = {
   uploadAttachment(file: File): Promise<MailUploadedAttachment> {
     const formData = new FormData();
     formData.append("file", file);
-    return nocobaseClient.action<MailUploadedAttachment>(
-      "mail",
-      "messageAttachmentUpload",
-      { body: formData }
-    ).then((attachment) => ({
-      ...attachment,
-      // Google reads originalname/mimetype; Microsoft reads filename/mimeType.
-      // Keep both pairs aligned so recipients see the real file name and type.
-      filename: attachment.originalname,
-      mimeType: attachment.mimetype,
-    }));
+    return nocobaseClient
+      .action<MailUploadedAttachment>("mail", "messageAttachmentUpload", {
+        body: formData,
+      })
+      .then((attachment) => ({
+        ...attachment,
+        // Google reads originalname/mimetype; Microsoft reads filename/mimeType.
+        // Keep both pairs aligned so recipients see the real file name and type.
+        filename: attachment.originalname,
+        mimeType: attachment.mimetype,
+      }));
   },
 
   saveDraft(payload: MailSendPayload): Promise<{ id: number }> {
@@ -194,6 +206,57 @@ export const mailApi = {
 
   getAccounts(): Promise<MailAccount[]> {
     return nocobaseClient.action<MailAccount[]>("mail", "getMailAccounts");
+  },
+
+  findDraft(values: {
+    accountEmail: string;
+    identityEmail: string;
+    to: string[];
+  }): Promise<MailMessage | undefined> {
+    return nocobaseClient
+      .action<MailMessage | undefined>("mailMessages", "get", {
+        query: {
+          filter: JSON.stringify({
+            isDraft: true,
+            from: values.identityEmail,
+            email: values.accountEmail,
+            to: values.to,
+          }),
+          appends: "labels,note",
+        },
+      })
+      .then((draft) => draft || undefined);
+  },
+
+  getOAuthUrl(
+    type: "google" | "microsoft",
+    options: { email?: string; reauthorize?: boolean } = {}
+  ): Promise<string> {
+    return nocobaseClient
+      .action<{ url?: string }>("mail", "oauth2url", {
+        query: { type, ...options },
+      })
+      .then((response) => response.url || "");
+  },
+
+  deleteAccount(email: string): Promise<unknown> {
+    return nocobaseClient.action("mail", "deleteMailAccount", {
+      body: { email },
+    });
+  },
+
+  resyncAccount(email: string): Promise<unknown> {
+    return nocobaseClient.action("mail", "messagesResync", {
+      body: { email },
+    });
+  },
+
+  syncAliases(email: string): Promise<MailIdentity[]> {
+    return nocobaseClient
+      .action<MailIdentity[]>("mail", "accountIdentitiesSync", {
+        body: { email },
+      })
+      .then((identities) => (Array.isArray(identities) ? identities : []));
   },
 
   getUsers(): Promise<MailUserRecord[]> {
@@ -251,7 +314,10 @@ export const mailApi = {
       .then((res) => (Array.isArray(res) ? res : []));
   },
 
-  createTemplate(values: { name: string; content: string }): Promise<MailTemplate> {
+  createTemplate(values: {
+    name: string;
+    content: string;
+  }): Promise<MailTemplate> {
     return nocobaseClient.action<MailTemplate>("mailTemplates", "create", {
       body: values,
     });
@@ -331,5 +397,27 @@ export const mailApi = {
         attachmentId,
       })
       .toString();
+  },
+
+  inlineImageUrl(messageId: number | string, contentId: string): string {
+    return nocobaseClient
+      .buildUrl("mail:messageContentPreview", { messageId, contentId })
+      .toString();
+  },
+
+  async fetchInlineImage(
+    messageId: number | string,
+    contentId: string
+  ): Promise<Blob> {
+    const response = await fetch(this.inlineImageUrl(messageId, contentId), {
+      headers: nocobaseClient.getHeaders({
+        withAclMeta: false,
+        headers: { Accept: "image/*" },
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Inline image request failed (${response.status})`);
+    }
+    return response.blob();
   },
 };

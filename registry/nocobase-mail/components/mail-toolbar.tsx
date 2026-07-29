@@ -1,7 +1,6 @@
 import {
   MailOpen,
   MailX,
-  PenLine,
   RefreshCw,
   Search,
   Trash2,
@@ -26,7 +25,6 @@ export function MailToolbar({
   onDeleteForever,
   onTrash,
   onClearSelection,
-  onCompose,
   actions,
   className,
 }: {
@@ -48,7 +46,6 @@ export function MailToolbar({
   onDeleteForever: () => void;
   onTrash: () => void;
   onClearSelection: () => void;
-  onCompose?: () => void;
   actions?: ReactNode;
   className?: string;
 }) {
@@ -141,22 +138,17 @@ export function MailToolbar({
       )}
 
       <div className="ml-auto flex items-center gap-2">
-        {actions}
         <Button
-          variant="ghost"
-          size="icon-sm"
+          variant="outline"
+          size="sm"
           title="Sync mailbox"
           onClick={onSync}
           disabled={syncing}
         >
           <RefreshCw className={cn(syncing && "animate-spin")} />
+          Refresh
         </Button>
-        {onCompose && (
-          <Button size="sm" onClick={onCompose}>
-            <PenLine />
-            Compose
-          </Button>
-        )}
+        {actions}
       </div>
     </div>
   );

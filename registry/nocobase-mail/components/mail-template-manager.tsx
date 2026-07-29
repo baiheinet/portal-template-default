@@ -20,8 +20,12 @@ export interface MailTemplateManagerProps {
   onOpenChange: (open: boolean) => void;
   templates: MailTemplate[];
   onCreate: (values: MailTemplateValues) => Promise<MailTemplate>;
-  onUpdate: (id: number | string, values: MailTemplateValues) => Promise<unknown>;
+  onUpdate: (
+    id: number | string,
+    values: MailTemplateValues
+  ) => Promise<unknown>;
   onRemove: (id: number | string) => Promise<unknown>;
+  embedded?: boolean;
 }
 
 const EMPTY: MailTemplateValues = { name: "", content: "" };
@@ -33,6 +37,7 @@ export function MailTemplateManager({
   onCreate,
   onUpdate,
   onRemove,
+  embedded = false,
 }: MailTemplateManagerProps) {
   const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const [form, setForm] = useState<MailTemplateValues>(EMPTY);
@@ -85,13 +90,14 @@ export function MailTemplateManager({
     }
   };
 
-  const handleDelete = async () => {
-    if (selectedId === null) return;
+  const handleDelete = async (id: number | string) => {
     setBusy(true);
     try {
-      await onRemove(selectedId);
-      setSelectedId(null);
-      setForm(EMPTY);
+      await onRemove(id);
+      if (selectedId === id) {
+        setSelectedId(null);
+        setForm(EMPTY);
+      }
       toast.success("Template deleted");
     } catch (error) {
       toast.error(
@@ -102,84 +108,96 @@ export function MailTemplateManager({
     }
   };
 
+  const editor = (
+    <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
+      <div className="flex flex-col gap-2">
+        <div className="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
+          {templates.map((template) => (
+            <div
+              key={template.id}
+              className={cn(
+                "group flex items-center rounded-md text-sm transition-colors",
+                selectedId === template.id
+                  ? "bg-muted font-medium"
+                  : "hover:bg-muted/50"
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => selectTemplate(template)}
+                className="min-w-0 flex-1 px-2.5 py-2 text-left"
+              >
+                <span className="block truncate">{template.name}</span>
+              </button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title={`Delete ${template.name}`}
+                aria-label={`Delete ${template.name}`}
+                disabled={busy}
+                onClick={() => void handleDelete(template.id)}
+                className="mr-1 shrink-0 text-muted-foreground opacity-60 hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          ))}
+          {!templates.length && (
+            <p className="px-2.5 py-2 text-xs text-muted-foreground">
+              No templates yet
+            </p>
+          )}
+        </div>
+        <Button variant="outline" size="sm" onClick={startNew}>
+          <Plus />
+          New
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Name</Label>
+          <Input
+            value={form.name}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, name: e.target.value }))
+            }
+            placeholder="e.g. Welcome"
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Content</Label>
+          <MailRichEditor
+            value={form.content}
+            onChange={(content) => setForm((prev) => ({ ...prev, content }))}
+            placeholder="Template content…"
+          />
+        </div>
+
+        <div className="flex items-center justify-end">
+          <Button
+            size="sm"
+            onClick={() => void handleSave()}
+            disabled={!canSave || busy}
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (embedded) return editor;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Templates</DialogTitle>
         </DialogHeader>
-
-        <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
-          <div className="flex flex-col gap-2">
-            <div className="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
-              {templates.map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => selectTemplate(template)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
-                    selectedId === template.id
-                      ? "bg-muted font-medium"
-                      : "hover:bg-muted/50"
-                  )}
-                >
-                  <span className="min-w-0 flex-1 truncate">{template.name}</span>
-                </button>
-              ))}
-              {!templates.length && (
-                <p className="px-2.5 py-2 text-xs text-muted-foreground">
-                  No templates yet
-                </p>
-              )}
-            </div>
-            <Button variant="outline" size="sm" onClick={startNew}>
-              <Plus />
-              New
-            </Button>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Name</Label>
-              <Input
-                value={form.name}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, name: e.target.value }))
-                }
-                placeholder="e.g. Welcome"
-                className="h-9"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Content</Label>
-              <MailRichEditor
-                value={form.content}
-                onChange={(content) =>
-                  setForm((prev) => ({ ...prev, content }))
-                }
-                placeholder="Template content…"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => void handleDelete()}
-                disabled={selectedId === null || busy}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 />
-                Delete
-              </Button>
-              <Button size="sm" onClick={() => void handleSave()} disabled={!canSave || busy}>
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
+        {editor}
       </DialogContent>
     </Dialog>
   );

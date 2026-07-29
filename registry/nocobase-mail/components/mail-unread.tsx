@@ -7,9 +7,11 @@ import {
   useRef,
   useState,
   type PropsWithChildren,
+  type ReactNode,
 } from "react";
 import { Mail } from "lucide-react";
 import { mailApi } from "./mail-api";
+import { cn } from "@/lib/utils";
 
 interface MailUnreadContextValue {
   count: number;
@@ -67,16 +69,43 @@ export function useMailUnread() {
   return useContext(MailUnreadContext);
 }
 
-export function MailUnreadIcon() {
+export interface MailUnreadIndicatorProps {
+  icon?: ReactNode;
+  label?: string;
+  showZero?: boolean;
+  max?: number;
+  className?: string;
+}
+
+export function MailUnreadIndicator({
+  icon = <Mail />,
+  label,
+  showZero = false,
+  max = 99,
+  className,
+}: MailUnreadIndicatorProps) {
   const { count } = useMailUnread();
+  const visible = showZero || count > 0;
+  const displayCount = count > max ? `${max}+` : String(count);
+
   return (
-    <span className="relative inline-flex">
-      <Mail />
-      {count > 0 && (
-        <span className="absolute -top-2 -right-2 flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-semibold leading-4 text-destructive-foreground ring-2 ring-sidebar">
-          {count > 99 ? "99+" : count}
-        </span>
-      )}
+    <span
+      className={cn("inline-flex items-center gap-2", className)}
+      aria-label={`${count} unread ${count === 1 ? "message" : "messages"}`}
+    >
+      <span className="relative inline-flex">
+        {icon}
+        {visible && (
+          <span className="absolute -top-2 -right-2 flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-semibold leading-4 text-destructive-foreground ring-2 ring-sidebar">
+            {displayCount}
+          </span>
+        )}
+      </span>
+      {label && <span>{label}</span>}
     </span>
   );
+}
+
+export function MailUnreadIcon() {
+  return <MailUnreadIndicator />;
 }

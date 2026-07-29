@@ -8,6 +8,7 @@ export { MailDetail } from "./mail-detail";
 export { MailCompose, MailComposeForm } from "./mail-compose";
 export type {
   ComposeInitialValues,
+  ComposeReference,
   ComposeMode,
   ComposeVariant,
   MailComposeFormProps,
@@ -37,7 +38,11 @@ export type {
   UseMailMessagesOptions,
   UseMailMessagesResult,
 } from "./use-mail-messages";
-export { useMailCompose, buildComposeInitial } from "./use-mail-compose";
+export {
+  useMailCompose,
+  buildComposeInitial,
+  canReplyAll,
+} from "./use-mail-compose";
 export type { UseMailComposeOptions } from "./use-mail-compose";
 export { MailLabelBadge } from "./mail-label-badge";
 export { MailLabelsEditor } from "./mail-labels-editor";
@@ -45,9 +50,27 @@ export { MailLabelManager } from "./mail-label-manager";
 export type { MailLabelManagerProps } from "./mail-label-manager";
 export { MailNoteEditor } from "./mail-note-editor";
 export { MailAttachmentList } from "./mail-attachment-list";
+export { createDebouncedDraftSaver } from "./mail-draft-autosave";
+export type { DebouncedDraftSaver } from "./mail-draft-autosave";
+export {
+  collectInlineContentIds,
+  filterInlineAttachments,
+  normalizeContentId,
+  replaceInlineImageSources,
+} from "./mail-inline-images";
 export { MailEmpty } from "./mail-empty";
-export { MailUnreadIcon, MailUnreadProvider, useMailUnread } from "./mail-unread";
-export type { MailUnreadProviderProps } from "./mail-unread";
+export {
+  MailUnreadIcon,
+  MailUnreadIndicator,
+  MailUnreadProvider,
+  useMailUnread,
+} from "./mail-unread";
+export type {
+  MailUnreadIndicatorProps,
+  MailUnreadProviderProps,
+} from "./mail-unread";
+export { MailSettingsDrawer } from "./mail-settings-drawer";
+export type { MailSettingsDrawerProps } from "./mail-settings-drawer";
 export { MailMassTracking } from "./mail-mass-tracking";
 export { useMailMassMessages } from "./use-mail-mass-messages";
 export { MailFilters } from "./mail-filters";

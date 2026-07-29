@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Loader2, PenLine, Trash2 } from "lucide-react";
+import { ChevronDown, FileText, Loader2, PenLine, Quote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type {
   MailAccount,
+  MailMessage,
   MailRecipientOption,
   MailSendPayload,
   MailUploadedAttachment,
@@ -16,6 +17,7 @@ import { MailTemplateManager } from "./mail-template-manager";
 import { MailSendActions } from "./mail-send-actions";
 import { MailRecipientInput } from "./mail-recipient-input";
 import { MailComposeAttachments } from "./mail-compose-attachments";
+import { createDebouncedDraftSaver } from "./mail-draft-autosave";
 import {
   DEFAULT_MAIL_SENDER_KEY,
   getMailSenderCandidates,
@@ -78,6 +80,14 @@ export interface ComposeInitialValues {
   isDraft?: boolean;
   id?: number;
   attachments?: MailUploadedAttachment[];
+  reference?: ComposeReference;
+}
+
+export interface ComposeReference {
+  from: string;
+  date?: string;
+  subject?: string;
+  preview?: string;
 }
 
 export type ComposeMode = "new" | "reply" | "replyAll" | "forward" | "draft";
@@ -98,6 +108,42 @@ const uniqueRecipients = (value: string) => {
   });
 };
 
+function MailComposeReference({ reference }: { reference: ComposeReference }) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="overflow-hidden rounded-lg border bg-muted/25">
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((value) => !value)}
+      >
+        <Quote className="size-3.5 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-xs font-medium">
+            Quoted message from {reference.from}
+          </span>
+          <span className="block truncate text-[11px] text-muted-foreground">
+            {[reference.subject, reference.date].filter(Boolean).join(" · ")}
+          </span>
+        </span>
+        <ChevronDown
+          className={cn(
+            "size-3.5 shrink-0 text-muted-foreground transition-transform",
+            expanded && "rotate-180"
+          )}
+        />
+      </button>
+      {expanded && reference.preview && (
+        <div className="max-h-28 overflow-y-auto border-t px-3 py-2 text-xs leading-5 whitespace-pre-wrap text-muted-foreground">
+          {reference.preview}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export interface MailComposeFormProps {
   accounts?: MailAccount[];
   initial?: ComposeInitialValues;
@@ -107,6 +153,7 @@ export interface MailComposeFormProps {
   showCancel?: boolean;
   allowScheduleSend?: boolean;
   allowBulkSend?: boolean;
+  autoSaveDraft?: boolean;
   bulkOnly?: boolean;
   defaultBulkIntervalMs?: number;
   recipientOptions?: MailRecipientOption[];
@@ -123,6 +170,7 @@ export function MailComposeForm({
   showCancel = false,
   allowScheduleSend = true,
   allowBulkSend = false,
+  autoSaveDraft = true,
   bulkOnly = false,
   defaultBulkIntervalMs = 2_000,
   recipientOptions,
@@ -156,12 +204,27 @@ export function MailComposeForm({
     "send" | "schedule" | "bulk" | null
   >(null);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [autoSavingDraft, setAutoSavingDraft] = useState(false);
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date>();
+  const [autoSaveError, setAutoSaveError] = useState(false);
+  const [editRevision, setEditRevision] = useState(0);
   const [draftId, setDraftId] = useState<number | undefined>(initial?.id);
   const [attachments, setAttachments] = useState<MailUploadedAttachment[]>(
     initial?.attachments ?? []
   );
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [deleteDraftOpen, setDeleteDraftOpen] = useState(false);
+  const [recoverableDraft, setRecoverableDraft] = useState<MailMessage>();
+  const [recoveryChecking, setRecoveryChecking] = useState(false);
+  const checkedRecoveryKeys = useRef(new Set<string>());
+  const recoverySequence = useRef(0);
+  const recoveryPending = useRef(false);
+  const lastSavedSnapshot = useRef("");
+
+  const markEdited = useCallback(() => {
+    setEditRevision((revision) => revision + 1);
+    setAutoSaveError(false);
+  }, []);
 
   const selectedSender = senderCandidates.find((candidate) => candidate.key === senderKey);
   const activeAccount = accounts.find((account) => account.id === selectedSender?.accountId);
@@ -199,6 +262,12 @@ export function MailComposeForm({
     setBody(initial?.body ?? "");
     setDraftId(initial?.id);
     setAttachments(initial?.attachments ?? []);
+    setEditRevision(0);
+    setLastAutoSavedAt(undefined);
+    setAutoSaveError(false);
+    setRecoverableDraft(undefined);
+    checkedRecoveryKeys.current.clear();
+    lastSavedSnapshot.current = "";
   }, [initial]);
 
   useEffect(() => {
@@ -248,8 +317,9 @@ export function MailComposeForm({
       setSignatureId(id);
       const signature = signatures.find((item) => String(item.id) === id);
       setBody((prev) => applySignature(prev, signature?.content));
+      markEdited();
     },
-    [signatures]
+    [signatures, markEdited]
   );
 
   const handleTemplateChange = useCallback(
@@ -261,11 +331,18 @@ export function MailComposeForm({
       if (template.subject) setSubject(template.subject);
       const signature = signatures.find((item) => String(item.id) === signatureId);
       setBody(applySignature(template.content, signature?.content));
+      markEdited();
     },
-    [templates, signatures, signatureId]
+    [templates, signatures, signatureId, markEdited]
   );
 
   const recipients = useMemo(() => uniqueRecipients(to), [to]);
+  const hasValidRecipients = useMemo(
+    () =>
+      recipients.length > 0 &&
+      recipients.every((recipient) => /.+@.+\..+/.test(recipient)),
+    [recipients]
+  );
 
   const buildPayload = useCallback(
     (overrides: Partial<MailSendPayload> = {}): MailSendPayload => ({
@@ -285,6 +362,130 @@ export function MailComposeForm({
     [draftId, initial, selectedSender, recipients, cc, subject, body, attachments]
   );
 
+  const draftSnapshot = useCallback((payload: MailSendPayload) => {
+    const content = { ...payload };
+    delete content.id;
+    return JSON.stringify(content);
+  }, []);
+
+  const saveDraftAutomatically = useCallback(
+    async ({ payload, snapshot }: { payload: MailSendPayload; snapshot: string }) => {
+      setAutoSavingDraft(true);
+      setAutoSaveError(false);
+      try {
+        const saved = await mailApi.saveDraft(payload);
+        setDraftId(saved.id);
+        lastSavedSnapshot.current = snapshot;
+        setLastAutoSavedAt(new Date());
+      } catch {
+        setAutoSaveError(true);
+      } finally {
+        setAutoSavingDraft(false);
+      }
+    },
+    []
+  );
+
+  const draftSaver = useMemo(
+    () => createDebouncedDraftSaver(saveDraftAutomatically),
+    [saveDraftAutomatically]
+  );
+
+  useEffect(() => () => draftSaver.cancel(), [draftSaver]);
+
+  useEffect(() => {
+    if (
+      mode !== "new" ||
+      initial?.isDraft ||
+      draftId ||
+      !selectedSender ||
+      !hasValidRecipients
+    ) {
+      recoveryPending.current = false;
+      setRecoveryChecking(false);
+      return;
+    }
+
+    const recoveryKey = [
+      selectedSender.accountEmail.toLocaleLowerCase(),
+      selectedSender.identityEmail.toLocaleLowerCase(),
+      ...recipients.map((recipient) => recipient.toLocaleLowerCase()).sort(),
+    ].join("|");
+    if (checkedRecoveryKeys.current.has(recoveryKey)) return;
+
+    const sequence = ++recoverySequence.current;
+    recoveryPending.current = true;
+    setRecoveryChecking(true);
+    const timer = setTimeout(() => {
+      mailApi
+        .findDraft({
+          accountEmail: selectedSender.accountEmail,
+          identityEmail: selectedSender.identityEmail,
+          to: recipients,
+        })
+        .then((draft) => {
+          if (sequence !== recoverySequence.current) return;
+          checkedRecoveryKeys.current.add(recoveryKey);
+          if (draft?.isDraft && !draft.mailId && !draft.rawId) {
+            setRecoverableDraft(draft);
+          }
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          if (sequence !== recoverySequence.current) return;
+          recoveryPending.current = false;
+          setRecoveryChecking(false);
+        });
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+      recoverySequence.current = sequence + 1;
+      recoveryPending.current = false;
+    };
+  }, [draftId, hasValidRecipients, initial?.isDraft, mode, recipients, selectedSender]);
+
+  useEffect(() => {
+    draftSaver.cancel();
+    if (
+      !autoSaveDraft ||
+      bulkOnly ||
+      !editRevision ||
+      !selectedSender ||
+      !hasValidRecipients ||
+      uploadingAttachments ||
+      sendAction !== null ||
+      savingDraft ||
+      autoSavingDraft ||
+      recoveryChecking ||
+      recoveryPending.current ||
+      recoverableDraft
+    ) {
+      return;
+    }
+
+    const payload = buildPayload({ isDraft: true });
+    const snapshot = draftSnapshot(payload);
+    if (snapshot === lastSavedSnapshot.current) return;
+    draftSaver.schedule({ payload, snapshot });
+    return () => draftSaver.cancel();
+  }, [
+    autoSaveDraft,
+    autoSavingDraft,
+    buildPayload,
+    bulkOnly,
+    draftSaver,
+    draftSnapshot,
+    editRevision,
+    hasValidRecipients,
+    recoverableDraft,
+    recoveryChecking,
+    savingDraft,
+    selectedSender,
+    sendAction,
+    uploadingAttachments,
+  ]);
+
   const validateMessage = useCallback(() => {
     if (!selectedSender) {
       toast.error("Please select a sender account");
@@ -303,6 +504,7 @@ export function MailComposeForm({
 
   const handleSend = useCallback(async () => {
     if (!validateMessage()) return;
+    draftSaver.cancel();
     setSendAction("send");
     try {
       await mailApi.send(buildPayload());
@@ -313,11 +515,12 @@ export function MailComposeForm({
     } finally {
       setSendAction(null);
     }
-  }, [validateMessage, buildPayload, onSent]);
+  }, [validateMessage, draftSaver, buildPayload, onSent]);
 
   const handleScheduleSend = useCallback(
     async (sendAt: Date) => {
       if (!validateMessage()) return false;
+      draftSaver.cancel();
       setSendAction("schedule");
       try {
         await mailApi.send(
@@ -335,12 +538,13 @@ export function MailComposeForm({
         setSendAction(null);
       }
     },
-    [validateMessage, buildPayload, onSent]
+    [validateMessage, draftSaver, buildPayload, onSent]
   );
 
   const handleBulkSend = useCallback(
     async (interval: number) => {
       if (!validateMessage()) return false;
+      draftSaver.cancel();
       if (recipients.length < 2) {
         toast.error("Bulk send requires at least two recipients");
         return false;
@@ -360,14 +564,18 @@ export function MailComposeForm({
         setSendAction(null);
       }
     },
-    [validateMessage, recipients.length, buildPayload, onSent]
+    [validateMessage, recipients.length, draftSaver, buildPayload, onSent]
   );
 
   const handleSaveDraft = useCallback(async () => {
     setSavingDraft(true);
     try {
-      const saved = await mailApi.saveDraft(buildPayload({ isDraft: true }));
+      const payload = buildPayload({ isDraft: true });
+      const saved = await mailApi.saveDraft(payload);
       setDraftId(saved.id);
+      lastSavedSnapshot.current = draftSnapshot(payload);
+      setLastAutoSavedAt(new Date());
+      setAutoSaveError(false);
       toast.success("Draft saved");
       onSent?.();
     } catch (error) {
@@ -375,7 +583,7 @@ export function MailComposeForm({
     } finally {
       setSavingDraft(false);
     }
-  }, [buildPayload, onSent]);
+  }, [buildPayload, draftSnapshot, onSent]);
 
   const handleDeleteDraft = useCallback(async () => {
     if (!draftId) return;
@@ -389,13 +597,54 @@ export function MailComposeForm({
     }
   }, [draftId, onSent]);
 
-  const busy = sendAction !== null || savingDraft || uploadingAttachments;
+  const useRecoveredDraft = useCallback(() => {
+    if (!recoverableDraft) return;
+    const recoveredAttachments = (recoverableDraft.attachments ?? []).flatMap(
+      (attachment) =>
+        attachment.path
+          ? [
+              {
+                originalname: attachment.originalname || attachment.filename,
+                filename: attachment.originalname || attachment.filename,
+                path: attachment.path,
+                size: attachment.size ?? 0,
+                encoding: attachment.encoding || "7bit",
+                mimetype:
+                  attachment.mimetype || attachment.mimeType || "application/octet-stream",
+                mimeType:
+                  attachment.mimeType || attachment.mimetype || "application/octet-stream",
+              },
+            ]
+          : []
+    );
+    setCc(recoverableDraft.cc || "");
+    setShowCc(Boolean(recoverableDraft.cc));
+    setSubject(recoverableDraft.subject || "");
+    setBody(recoverableDraft.bodyHtml || recoverableDraft.bodyText || "");
+    setAttachments(recoveredAttachments);
+    setDraftId(recoverableDraft.id);
+    setRecoverableDraft(undefined);
+    setEditRevision(0);
+    setLastAutoSavedAt(
+      recoverableDraft.updatedAt ? new Date(recoverableDraft.updatedAt) : new Date()
+    );
+    toast.success("Draft restored");
+  }, [recoverableDraft]);
+
+  const busy =
+    sendAction !== null || savingDraft || autoSavingDraft || uploadingAttachments;
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       <div className="grid grid-cols-[64px_1fr] items-center gap-2">
         <Label className="text-xs text-muted-foreground">From</Label>
-        <Select value={senderKey} onValueChange={(value) => setSenderKey(value ?? "")}>
+        <Select
+          value={senderKey}
+          onValueChange={(value) => {
+            setSenderKey(value ?? "");
+            markEdited();
+          }}
+        >
           <SelectTrigger className="h-9 w-full">
             <SelectValue placeholder="Select sender">
               {selectedSender?.label}
@@ -416,7 +665,10 @@ export function MailComposeForm({
         <div className="flex items-center gap-2">
           <MailRecipientInput
             value={to}
-            onChange={setTo}
+            onChange={(value) => {
+              setTo(value);
+              markEdited();
+            }}
             options={recipientOptions}
             placeholder="Add recipients…"
           />
@@ -433,7 +685,10 @@ export function MailComposeForm({
           <Label className="text-xs text-muted-foreground">Cc</Label>
           <MailRecipientInput
             value={cc}
-            onChange={setCc}
+            onChange={(value) => {
+              setCc(value);
+              markEdited();
+            }}
             options={recipientOptions}
             placeholder="Add Cc recipients…"
           />
@@ -444,15 +699,25 @@ export function MailComposeForm({
         <Label className="text-xs text-muted-foreground">Subject</Label>
         <Input
           value={subject}
-          onChange={(e) => setSubject(e.target.value)}
+          onChange={(e) => {
+            setSubject(e.target.value);
+            markEdited();
+          }}
           placeholder="Subject"
           className="h-9"
         />
       </div>
 
+      {initial?.reference && mode !== "draft" && (
+        <MailComposeReference reference={initial.reference} />
+      )}
+
       <MailRichEditor
         value={body}
-        onChange={setBody}
+        onChange={(value) => {
+          setBody(value);
+          markEdited();
+        }}
         placeholder="Write your message…"
         toolbarActions={
           <>
@@ -527,9 +792,11 @@ export function MailComposeForm({
 
       <div className="flex items-center justify-between gap-2">
         <MailComposeAttachments
+          key={draftId ?? "new-draft"}
           value={attachments}
           onChange={setAttachments}
           onBusyChange={setUploadingAttachments}
+          onDirty={markEdited}
           disabled={sendAction !== null || savingDraft}
         />
 
@@ -551,10 +818,30 @@ export function MailComposeForm({
             </Button>
           )}
           {!bulkOnly && (
-            <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={busy}>
-              {savingDraft ? <Loader2 className="animate-spin" /> : null}
-              Save draft
-            </Button>
+            <div className="flex items-center gap-2">
+              {autoSaveDraft && (
+                <span
+                  className={cn(
+                    "text-[11px] text-muted-foreground",
+                    autoSaveError && "text-destructive"
+                  )}
+                >
+                  {autoSavingDraft
+                    ? "Saving…"
+                    : autoSaveError
+                      ? "Auto-save failed"
+                      : lastAutoSavedAt
+                        ? `Saved ${lastAutoSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                        : hasValidRecipients
+                          ? "Auto-save on"
+                          : "Add recipient to auto-save"}
+                </span>
+              )}
+              <Button variant="outline" size="sm" onClick={handleSaveDraft} disabled={busy}>
+                {savingDraft ? <Loader2 className="animate-spin" /> : null}
+                Save draft
+              </Button>
+            </div>
           )}
           <MailSendActions
             disabled={busy}
@@ -609,6 +896,29 @@ export function MailComposeForm({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(recoverableDraft)}
+        onOpenChange={(open) => !open && setRecoverableDraft(undefined)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore saved draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A draft already exists for this sender and recipient. Restore its
+              subject, message, and attachments?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRecoverableDraft(undefined)}>
+              Ignore
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={useRecoveredDraft}>
+              Restore draft
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -633,6 +943,7 @@ export interface MailComposeProps {
   variant?: ComposeVariant;
   allowScheduleSend?: boolean;
   allowBulkSend?: boolean;
+  autoSaveDraft?: boolean;
   defaultBulkIntervalMs?: number;
   recipientOptions?: MailRecipientOption[];
   onAccountChange?: (account: MailAccount) => void;
@@ -648,6 +959,7 @@ export function MailCompose({
   variant = "drawer",
   allowScheduleSend = true,
   allowBulkSend = false,
+  autoSaveDraft = true,
   defaultBulkIntervalMs = 2_000,
   recipientOptions,
   onAccountChange,
@@ -667,6 +979,7 @@ export function MailCompose({
       mode={mode}
       allowScheduleSend={allowScheduleSend}
       allowBulkSend={allowBulkSend}
+      autoSaveDraft={autoSaveDraft}
       defaultBulkIntervalMs={defaultBulkIntervalMs}
       recipientOptions={recipientOptions}
       onAccountChange={onAccountChange}

@@ -19,6 +19,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -250,6 +251,7 @@ export function MailTable({
   columns = DEFAULT_MAIL_COLUMNS,
   emptyVariant = "inbox",
   toolbar,
+  trailingAction,
   className,
 }: {
   messages: MailMessage[];
@@ -265,6 +267,7 @@ export function MailTable({
   columns?: MailColumnId[];
   emptyVariant?: "inbox" | "search";
   toolbar?: ReactNode;
+  trailingAction?: ReactNode;
   className?: string;
 }) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
@@ -336,23 +339,28 @@ export function MailTable({
             }
           />
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {columns.map((id) => {
-              const column = table.getColumn(id);
-              if (!column) return null;
-              return (
-                <DropdownMenuCheckboxItem
-                  key={id}
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(value) => column.toggleVisibility(Boolean(value))}
-                >
-                  {MAIL_COLUMN_LABELS[id]}
-                </DropdownMenuCheckboxItem>
-              );
-            })}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {columns.map((id) => {
+                const column = table.getColumn(id);
+                if (!column) return null;
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={id}
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(Boolean(value))
+                    }
+                  >
+                    {MAIL_COLUMN_LABELS[id]}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        {trailingAction}
       </div>
 
       <div className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]">

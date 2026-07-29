@@ -4,24 +4,29 @@ import {
   MessagesSquare,
   PanelsLeftRight,
   PenLine,
+  RefreshCw,
   Send,
   Users,
 } from "lucide-react";
 import { Link } from "react-router";
 import {
   MailInbox,
+  MailUnreadIndicator,
   mailApi,
+  useMailUnread,
   useMailCompose,
   type MailColumnId,
   type MailScope,
   type MailUserRecord,
 } from "./components";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Avatar,
-  AvatarFallback,
-} from "@/components/ui/avatar";
+  MailShowcasePage,
+  MailShowcaseSection,
+} from "./components/mail-showcase-layout";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Sheet,
   SheetContent,
@@ -60,16 +65,25 @@ const ALL_COLUMNS: MailColumnId[] = [
 
 const scenarios = [
   {
-    title: "Mail workspace",
-    description: "A complete mailbox workspace with folders, filters, and message actions.",
+    title: "My mailbox",
+    description:
+      "A personal mailbox with folders, filters, and message actions.",
     path: "/admin/mail-demos/workspace",
     icon: PanelsLeftRight,
   },
   {
-    title: "Personal & all-users inbox",
-    description: "Reuse one inbox component for the current user or every connected mailbox.",
+    title: "Mailbox views",
+    description:
+      "Switch between the current user's inbox and all connected mailboxes.",
     path: "/admin/mail-demos/personal",
     icon: Users,
+  },
+  {
+    title: "Unread indicator",
+    description:
+      "Show a live unread count in navigation, buttons, or mailbox summaries.",
+    path: "/admin/mail-demos/unread",
+    icon: MessagesSquare,
   },
   {
     title: "Compose page",
@@ -79,31 +93,12 @@ const scenarios = [
   },
   {
     title: "Correspondence per user",
-    description: "Select a user and inspect all messages exchanged with that address.",
+    description:
+      "Select a user and inspect all messages exchanged with that address.",
     path: "/admin/mail-demos/filtered",
     icon: ListFilter,
   },
-  {
-    title: "Send to anyone",
-    description: "Launch the reusable compose dialog from an ordinary user directory.",
-    path: "/admin/mail-demos/compose-anywhere",
-    icon: Send,
-  },
 ];
-
-function ScenarioHeader({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="border-b pb-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-        Mail components
-      </p>
-      <h2 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{title}</h2>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-        {description}
-      </p>
-    </div>
-  );
-}
 
 function useMailUsers() {
   const [users, setUsers] = useState<MailUserRecord[]>([]);
@@ -139,59 +134,125 @@ function userInitials(user: MailUserRecord) {
 
 export function MailScenarioOverview() {
   return (
-    <div className="space-y-6">
-      <ScenarioHeader
-        title="Five mail integration scenarios"
-        description="The original five entry points are registered by the mail extension and all use the live NocoBase mail API."
-      />
-      <div className="grid gap-3 md:grid-cols-2">
-        {scenarios.map((scenario, index) => {
-          const Icon = scenario.icon;
-          return (
-            <Link
-              key={scenario.path}
-              to={scenario.path}
-              className="group flex gap-4 rounded-xl border bg-card p-5 transition-colors hover:border-primary/35 hover:bg-muted/30"
-            >
-              <span className="font-mono text-2xl font-semibold text-muted-foreground/40">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <Icon className="mt-1 size-5 text-muted-foreground group-hover:text-primary" />
-              <span>
-                <span className="block font-semibold">{scenario.title}</span>
-                <span className="mt-1 block text-sm leading-5 text-muted-foreground">
-                  {scenario.description}
+    <MailShowcasePage
+      title="Mail integration scenarios"
+      description="Compose and record-driven sending share one page, while the other examples cover personal mail, audience, and correspondence patterns."
+      badge="Overview"
+    >
+      <MailShowcaseSection
+        eyebrow="Component patterns"
+        title="Choose a mail workflow to explore"
+        description="Each example uses the same public mail components with a different page-level composition."
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          {scenarios.map((scenario, index) => {
+            const Icon = scenario.icon;
+            return (
+              <Link
+                key={scenario.path}
+                to={scenario.path}
+                className="group flex gap-4 rounded-xl border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-primary/35 hover:bg-muted/30"
+              >
+                <span className="font-mono text-2xl font-semibold text-muted-foreground/40">
+                  {String(index + 1).padStart(2, "0")}
                 </span>
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
+                <Icon className="mt-1 size-5 text-muted-foreground group-hover:text-primary" />
+                <span>
+                  <span className="block font-semibold">{scenario.title}</span>
+                  <span className="mt-1 block text-sm leading-5 text-muted-foreground">
+                    {scenario.description}
+                  </span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </MailShowcaseSection>
+    </MailShowcasePage>
   );
 }
 
 export function MailAudienceScenario() {
   const [scope, setScope] = useState<MailScope>("personal");
   return (
-    <div className="space-y-6">
-      <ScenarioHeader
-        title="Personal & all-users inbox"
-        description="Switch the same MailInbox between the signed-in user's messages and all connected users."
-      />
-      <MailInbox
-        scope={scope}
-        columns={scope === "all" ? ALL_COLUMNS : PERSONAL_COLUMNS}
-        toolbarActions={
-          <Tabs value={scope} onValueChange={(value) => setScope(value as MailScope)}>
-            <TabsList>
-              <TabsTrigger value="personal">My inbox</TabsTrigger>
-              <TabsTrigger value="all">All users</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        }
-      />
-    </div>
+    <MailShowcasePage
+      title="Mailbox views"
+      description="Switch between the signed-in user's inbox and all connected mailboxes."
+      badge="Mailbox scope"
+    >
+      <MailShowcaseSection
+        eyebrow="Interactive preview"
+        title="Personal and administrative mailbox views"
+        description="The audience switch stays in the inbox action row while the table columns adapt to the selected scope."
+      >
+        <MailInbox
+          scope={scope}
+          columns={scope === "all" ? ALL_COLUMNS : PERSONAL_COLUMNS}
+          toolbarActions={
+            <Tabs
+              value={scope}
+              onValueChange={(value) => setScope(value as MailScope)}
+            >
+              <TabsList>
+                <TabsTrigger value="personal">My inbox</TabsTrigger>
+                <TabsTrigger value="all">All users</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          }
+        />
+      </MailShowcaseSection>
+    </MailShowcasePage>
+  );
+}
+
+export function MailUnreadScenario() {
+  const { count, refresh } = useMailUnread();
+
+  return (
+    <MailShowcasePage
+      title="Unread indicator"
+      description="A reusable unread-count indicator that refreshes automatically with the mailbox."
+      badge="Live status"
+    >
+      <MailShowcaseSection
+        eyebrow="Interactive preview"
+        title="Unread mail at a glance"
+        description="The count refreshes every 60 seconds and whenever the browser window becomes active."
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="flex min-h-40 flex-col justify-between rounded-xl border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div>
+              <p className="text-sm font-semibold">Icon indicator</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Use the compact form in navigation and action areas.
+              </p>
+            </div>
+            <div className="flex items-end justify-between">
+              <div className="rounded-lg border bg-background p-3">
+                <MailUnreadIndicator showZero />
+              </div>
+              <span className="text-3xl font-semibold tabular-nums">{count}</span>
+            </div>
+          </div>
+
+          <div className="flex min-h-40 flex-col justify-between rounded-xl border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div>
+              <p className="text-sm font-semibold">Labeled indicator</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Add a label when the component needs more context.
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <MailUnreadIndicator label="Unread mail" showZero />
+              <Button variant="outline" size="sm" onClick={refresh}>
+                <RefreshCw />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </div>
+      </MailShowcaseSection>
+    </MailShowcasePage>
   );
 }
 
@@ -199,73 +260,89 @@ export function MailCorrespondenceScenario() {
   const { users, loading } = useMailUsers();
   const [selectedUser, setSelectedUser] = useState<MailUserRecord>();
   return (
-    <div className="space-y-6">
-      <ScenarioHeader
-        title="Correspondence per user"
-        description="Open a user from the directory to inspect the messages owned by that user's connected mailbox."
-      />
-      <div className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-2 border-b border-border/60 px-5 py-4">
-          <Users className="size-4 text-muted-foreground" />
-          <div>
-            <h3 className="text-sm font-semibold">Users</h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {loading ? "Loading…" : `${users.length} people`}
-            </p>
+    <MailShowcasePage
+      title="Correspondence per user"
+      description="Open a user from the directory to inspect the messages owned by that user's connected mailbox."
+      badge="Record action"
+    >
+      <MailShowcaseSection
+        eyebrow="User directory"
+        title="Open mailbox correspondence from a business record"
+        description="The user table owns the action entry; the reusable inbox opens in a side sheet scoped to that user."
+      >
+        <div className="overflow-hidden rounded-xl border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center gap-2 border-b border-border/60 px-5 py-4">
+            <Users className="size-4 text-muted-foreground" />
+            <div>
+              <h3 className="text-sm font-semibold">Users</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {loading ? "Loading…" : `${users.length} people`}
+              </p>
+            </div>
           </div>
-        </div>
-        <Table>
-          <TableHeader className="bg-muted/45">
-            <TableRow>
-              <TableHead className="w-[45%]">Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading
-              ? Array.from({ length: 4 }).map((_, index) => (
-                  <TableRow key={index}>
-                    <TableCell><Skeleton className="h-9 w-44" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                    <TableCell><Skeleton className="ml-auto h-8 w-32" /></TableCell>
-                  </TableRow>
-                ))
-              : users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                            {userInitials(user)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium">{userName(user)}</div>
-                          {user.username && (
-                            <div className="truncate text-xs text-muted-foreground">@{user.username}</div>
-                          )}
+          <Table>
+            <TableHeader className="bg-muted/45">
+              <TableRow>
+                <TableHead className="w-[45%]">Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <Skeleton className="h-9 w-44" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-48" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="ml-auto h-8 w-32" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                : users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                              {userInitials(user)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium">
+                              {userName(user)}
+                            </div>
+                            {user.username && (
+                              <div className="truncate text-xs text-muted-foreground">
+                                @{user.username}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {user.email || "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!user.email}
-                        onClick={() => setSelectedUser(user)}
-                      >
-                        <MessagesSquare /> Correspondence
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-          </TableBody>
-        </Table>
-      </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {user.email || "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!user.email}
+                          onClick={() => setSelectedUser(user)}
+                        >
+                          <MessagesSquare /> Correspondence
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+            </TableBody>
+          </Table>
+        </div>
+      </MailShowcaseSection>
 
       <Sheet
         open={Boolean(selectedUser)}
@@ -284,8 +361,12 @@ export function MailCorrespondenceScenario() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <SheetTitle className="truncate">{userName(selectedUser)}</SheetTitle>
-                  <SheetDescription className="truncate">{selectedUser.email}</SheetDescription>
+                  <SheetTitle className="truncate">
+                    {userName(selectedUser)}
+                  </SheetTitle>
+                  <SheetDescription className="truncate">
+                    {selectedUser.email}
+                  </SheetDescription>
                 </div>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto p-4">
@@ -300,50 +381,123 @@ export function MailCorrespondenceScenario() {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </MailShowcasePage>
   );
 }
 
-export function MailComposeAnywhereScenario() {
+export function MailRecipientSelectionDemo() {
   const { users, loading } = useMailUsers();
   const { openCompose, composeDialog } = useMailCompose();
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const eligibleUsers = users.filter((user) => Boolean(user.email));
+  const selectedUsers = eligibleUsers.filter((user) =>
+    selectedIds.has(user.id)
+  );
+  const allSelected =
+    eligibleUsers.length > 0 && selectedUsers.length === eligibleUsers.length;
+
+  const selectUser = (id: number, selected: boolean) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (selected) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
   return (
-    <div className="space-y-6">
-      <ScenarioHeader
-        title="Send to anyone, anywhere"
-        description="An ordinary user directory can open the shared compose dialog with recipient fields prefilled."
-      />
-      <div className="divide-y overflow-hidden rounded-xl border bg-card">
+    <>
+      <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+          <span className="text-sm text-muted-foreground">
+            {selectedUsers.length
+              ? `${selectedUsers.length} selected`
+              : "Select users to prefill recipients"}
+          </span>
+          <Button
+            size="sm"
+            disabled={!selectedUsers.length}
+            onClick={() =>
+              openCompose({
+                to: selectedUsers.map((user) => user.email).join(", "),
+                subject:
+                  selectedUsers.length === 1
+                    ? `Following up, ${userName(selectedUsers[0])}`
+                    : undefined,
+              })
+            }
+          >
+            <Send /> Email selected
+          </Button>
+        </div>
         {loading ? (
-          <p className="p-8 text-center text-sm text-muted-foreground">Loading users…</p>
+          <p className="p-8 text-center text-sm text-muted-foreground">
+            Loading users…
+          </p>
         ) : (
-          users.map((user) => (
-            <div key={user.id} className="flex items-center gap-4 px-5 py-4">
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{userName(user)}</span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {user.email || "No email address"}
-                </span>
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!user.email}
-                onClick={() =>
-                  openCompose({
-                    to: user.email,
-                    subject: `Following up, ${userName(user)}`,
-                    body: `Hi ${userName(user)},<p></p>`,
-                  })
-                }
-              >
-                <Send /> Send email
-              </Button>
-            </div>
-          ))
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={(checked) =>
+                      setSelectedIds(
+                        checked
+                          ? new Set(eligibleUsers.map((user) => user.id))
+                          : new Set()
+                      )
+                    }
+                    aria-label="Select all users with email addresses"
+                  />
+                </TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="w-36 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(user.id)}
+                      disabled={!user.email}
+                      onCheckedChange={(checked) =>
+                        selectUser(user.id, Boolean(checked))
+                      }
+                      aria-label={`Select ${userName(user)}`}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {userName(user)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {user.email || "No email address"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!user.email}
+                      onClick={() =>
+                        openCompose({
+                          to: user.email,
+                          subject: `Following up, ${userName(user)}`,
+                          body: `Hi ${userName(user)},<p></p>`,
+                        })
+                      }
+                    >
+                      <Send /> Send email
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </div>
       {composeDialog}
-    </div>
+    </>
   );
 }

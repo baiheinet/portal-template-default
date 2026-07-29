@@ -23,6 +23,7 @@ export interface MailSignatureManagerProps {
   onUpdate: (id: string, values: MailSignatureValues) => Promise<unknown>;
   onRemove: (id: string) => Promise<unknown>;
   onSetDefault: (id: string) => Promise<unknown>;
+  embedded?: boolean;
 }
 
 const EMPTY: MailSignatureValues = { name: "", content: "", isDefault: false };
@@ -35,6 +36,7 @@ export function MailSignatureManager({
   onUpdate,
   onRemove,
   onSetDefault,
+  embedded = false,
 }: MailSignatureManagerProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<MailSignatureValues>(EMPTY);
@@ -92,13 +94,14 @@ export function MailSignatureManager({
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedId) return;
+  const handleDelete = async (id: string) => {
     setBusy(true);
     try {
-      await onRemove(selectedId);
-      setSelectedId(null);
-      setForm(EMPTY);
+      await onRemove(id);
+      if (selectedId === id) {
+        setSelectedId(null);
+        setForm(EMPTY);
+      }
       toast.success("Signature deleted");
     } catch (error) {
       toast.error(
@@ -115,15 +118,132 @@ export function MailSignatureManager({
     try {
       await onSetDefault(selectedId);
       setForm((prev) => ({ ...prev, isDefault: !selectedIsDefault }));
-      toast.success(selectedIsDefault ? "Default signature cleared" : "Default signature set");
+      toast.success(
+        selectedIsDefault
+          ? "Default signature cleared"
+          : "Default signature set"
+      );
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update default signature"
+        error instanceof Error
+          ? error.message
+          : "Failed to update default signature"
       );
     } finally {
       setBusy(false);
     }
   };
+
+  const editor = (
+    <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
+      <div className="flex flex-col gap-2">
+        <div className="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
+          {signatures.map((signature) => (
+            <div
+              key={signature.id}
+              className={cn(
+                "group flex items-center rounded-md text-sm transition-colors",
+                selectedId === signature.id
+                  ? "bg-muted font-medium"
+                  : "hover:bg-muted/50"
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => selectSignature(signature)}
+                className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left"
+              >
+                <span className="min-w-0 flex-1 truncate">{signature.name}</span>
+                {signature.isDefault && (
+                  <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-400" />
+                )}
+              </button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title={`Delete ${signature.name}`}
+                aria-label={`Delete ${signature.name}`}
+                disabled={busy}
+                onClick={() => void handleDelete(signature.id)}
+                className="mr-1 shrink-0 text-muted-foreground opacity-60 hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          ))}
+          {!signatures.length && (
+            <p className="px-2.5 py-2 text-xs text-muted-foreground">
+              No signatures yet
+            </p>
+          )}
+        </div>
+        <Button variant="outline" size="sm" onClick={startNew}>
+          <Plus />
+          New
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Name</Label>
+          <Input
+            value={form.name}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, name: e.target.value }))
+            }
+            placeholder="e.g. Work"
+            className="h-9"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Content</Label>
+          <MailRichEditor
+            value={form.content}
+            onChange={(content) => setForm((prev) => ({ ...prev, content }))}
+            placeholder="Signature content…"
+          />
+        </div>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={Boolean(form.isDefault)}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, isDefault: e.target.checked }))
+            }
+            className="size-4 accent-primary"
+          />
+          Default signature (auto-insert on new messages)
+        </label>
+
+        <div className="flex items-center justify-end">
+          <div className="flex items-center gap-2">
+            {selectedId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void handleSetDefault()}
+                disabled={busy}
+              >
+                <Star />
+                {selectedIsDefault ? "Unset default" : "Set default"}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={() => void handleSave()}
+              disabled={!canSave || busy}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (embedded) return editor;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -131,108 +251,7 @@ export function MailSignatureManager({
         <DialogHeader>
           <DialogTitle>Signatures</DialogTitle>
         </DialogHeader>
-
-        <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
-          <div className="flex flex-col gap-2">
-            <div className="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
-              {signatures.map((signature) => (
-                <button
-                  key={signature.id}
-                  type="button"
-                  onClick={() => selectSignature(signature)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
-                    selectedId === signature.id
-                      ? "bg-muted font-medium"
-                      : "hover:bg-muted/50"
-                  )}
-                >
-                  <span className="min-w-0 flex-1 truncate">
-                    {signature.name}
-                  </span>
-                  {signature.isDefault && (
-                    <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-400" />
-                  )}
-                </button>
-              ))}
-              {!signatures.length && (
-                <p className="px-2.5 py-2 text-xs text-muted-foreground">
-                  No signatures yet
-                </p>
-              )}
-            </div>
-            <Button variant="outline" size="sm" onClick={startNew}>
-              <Plus />
-              New
-            </Button>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Name</Label>
-              <Input
-                value={form.name}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, name: e.target.value }))
-                }
-                placeholder="e.g. Work"
-                className="h-9"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Content</Label>
-              <MailRichEditor
-                value={form.content}
-                onChange={(content) =>
-                  setForm((prev) => ({ ...prev, content }))
-                }
-                placeholder="Signature content…"
-              />
-            </div>
-
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={Boolean(form.isDefault)}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, isDefault: e.target.checked }))
-                }
-                className="size-4 accent-primary"
-              />
-              Default signature (auto-insert on new messages)
-            </label>
-
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => void handleDelete()}
-                disabled={!selectedId || busy}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 />
-                Delete
-              </Button>
-              <div className="flex items-center gap-2">
-                {selectedId && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handleSetDefault()}
-                    disabled={busy}
-                  >
-                    <Star />
-                    {selectedIsDefault ? "Unset default" : "Set default"}
-                  </Button>
-                )}
-                <Button size="sm" onClick={() => void handleSave()} disabled={!canSave || busy}>
-                  Save
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        {editor}
       </DialogContent>
     </Dialog>
   );

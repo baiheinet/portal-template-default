@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { createServer } from "vite";
 
 const server = await createServer({
@@ -8,11 +9,21 @@ const server = await createServer({
 });
 
 try {
+  const mailTableSource = await readFile(
+    new URL("../components/mail-table.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.match(
+    mailTableSource,
+    /<DropdownMenuContent[^>]*>\s*<DropdownMenuGroup>[\s\S]*?<DropdownMenuLabel>Toggle columns<\/DropdownMenuLabel>/,
+    "keeps the Base UI columns label inside a menu group"
+  );
+
   const { getMailSenderCandidates, resolveMailSender } =
     await server.ssrLoadModule(
       "/registry/nocobase-mail/components/mail-senders.ts"
     );
-  const { buildComposeInitial } = await server.ssrLoadModule(
+  const { buildComposeInitial, canReplyAll } = await server.ssrLoadModule(
     "/registry/nocobase-mail/components/use-mail-compose.tsx"
   );
   const { mailApi } = await server.ssrLoadModule(
@@ -24,8 +35,19 @@ try {
   const { default: mailExtension } = await server.ssrLoadModule(
     "/registry/nocobase-mail/extension.tsx"
   );
-  const { appendRecipient, currentToken, mergeRecipients } = await server.ssrLoadModule(
-    "/registry/nocobase-mail/components/mail-recipient-input.tsx"
+  const { appendRecipient, currentToken, mergeRecipients } =
+    await server.ssrLoadModule(
+      "/registry/nocobase-mail/components/mail-recipient-input.tsx"
+    );
+  const { createDebouncedDraftSaver } = await server.ssrLoadModule(
+    "/registry/nocobase-mail/components/mail-draft-autosave.ts"
+  );
+  const {
+    collectInlineContentIds,
+    filterInlineAttachments,
+    replaceInlineImageSources,
+  } = await server.ssrLoadModule(
+    "/registry/nocobase-mail/components/mail-inline-images.ts"
   );
 
   assert.equal(currentToken("alice@example.com, bo"), "bo");
@@ -53,21 +75,74 @@ try {
     "merges manually entered To/Cc recipients and removes duplicates"
   );
 
-  const scenarioResources = mailExtension.resources.filter(
-    (resource) => resource.name.startsWith("mail-scenario-")
+  const autoSaved = [];
+  const draftSaver = createDebouncedDraftSaver(
+    async (payload) => autoSaved.push(payload),
+    5
   );
-  assert.equal(scenarioResources.length, 5, "keeps all five mail scenario menu entries");
+  draftSaver.schedule({ subject: "First version" });
+  draftSaver.schedule({ subject: "Latest version" });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.deepEqual(
+    autoSaved,
+    [{ subject: "Latest version" }],
+    "auto-save debounces edits and persists only the latest draft snapshot"
+  );
+  draftSaver.cancel();
+
+  const inlineHtml = [
+    '<p><img src="cid:<Hero.Image@Mail>"></p>',
+    '<img src="/api/mail:messageContentPreview?messageId=7&amp;contentId=logo%40mail">',
+  ].join("");
+  assert.deepEqual(collectInlineContentIds(inlineHtml), [
+    "hero.image@mail",
+    "logo@mail",
+  ]);
+  assert.equal(
+    replaceInlineImageSources(
+      inlineHtml,
+      new Map([
+        ["hero.image@mail", "blob:hero"],
+        ["logo@mail", "blob:logo"],
+      ])
+    ),
+    '<p><img src="blob:hero"></p><img src="blob:logo">'
+  );
+  assert.deepEqual(
+    filterInlineAttachments(
+      [
+        { attachmentId: "inline", filename: "hero.png", mimeType: "image/png", contentId: "<Hero.Image@Mail>" },
+        { attachmentId: "file", filename: "report.pdf", mimeType: "application/pdf" },
+      ],
+      inlineHtml
+    ).map((attachment) => attachment.attachmentId),
+    ["file"],
+    "inline images are not duplicated in the downloadable attachment list"
+  );
+
+  const scenarioResources = mailExtension.resources.filter((resource) =>
+    resource.name.startsWith("mail-scenario-")
+  );
+  assert.equal(
+    scenarioResources.length,
+    5,
+    "includes the standalone unread-indicator scenario"
+  );
   assert.ok(
     scenarioResources.every((resource) => resource.meta?.parent === "mail"),
     "nests every scenario directly under Mail"
   );
   assert.equal(
-    mailExtension.resources.some((resource) => resource.name === "mail-compose"),
+    mailExtension.resources.some(
+      (resource) => resource.name === "mail-compose"
+    ),
     false,
     "removes the old standalone Compose menu entry"
   );
   assert.equal(
-    mailExtension.resources.some((resource) => resource.name === "mail-scenarios"),
+    mailExtension.resources.some(
+      (resource) => resource.name === "mail-scenarios"
+    ),
     false,
     "removes the intermediate Mail scenarios menu group"
   );
@@ -87,10 +162,17 @@ try {
     [
       "/admin/mail-demos/workspace",
       "/admin/mail-demos/personal",
+      "/admin/mail-demos/unread",
       "/admin/mail/compose",
       "/admin/mail-demos/filtered",
-      "/admin/mail-demos/compose-anywhere",
     ]
+  );
+  assert.equal(
+    mailExtension.resources.some(
+      (resource) => resource.name === "mail-scenario-compose-anywhere"
+    ),
+    false,
+    "removes the standalone Send to anyone menu entry"
   );
 
   const candidates = getMailSenderCandidates([
@@ -117,7 +199,11 @@ try {
     },
   ]);
 
-  assert.equal(candidates.length, 4, "deduplicates identities within an account");
+  assert.equal(
+    candidates.length,
+    4,
+    "deduplicates identities within an account"
+  );
   assert.equal(new Set(candidates.map((candidate) => candidate.key)).size, 4);
   assert.deepEqual(
     resolveMailSender(candidates, {
@@ -133,38 +219,75 @@ try {
     "supports legacy compose values that only contain from"
   );
 
-  const reply = buildComposeInitial(
-    {
-      id: 1,
-      email: "team@example.com",
-      identityEmail: "sales@example.com",
-      mailId: "message-1",
-      rawId: "raw-1",
-      boxType: "in",
-      isRead: false,
-      isDraft: false,
-      from: "customer@example.com",
-      to: "sales@example.com, colleague@example.com",
-      toUsers: [
-        { address: "SALES@example.com" },
-        { address: "colleague@example.com" },
-      ],
-      cc: "observer@example.com",
-      ccUsers: [{ address: "observer@example.com" }],
-      subject: "Question",
-      date: "2026-07-27T10:00:00.000Z",
-      bodyText: "Hello",
-      bodyHtml: "<p>Hello</p>",
-      attachments: [],
-    },
-    "replyAll",
-    ["team@example.com", "sales@example.com"]
-  );
+  const sourceMessage = {
+    id: 1,
+    email: "team@example.com",
+    identityEmail: "sales@example.com",
+    mailId: "message-1",
+    rawId: "raw-1",
+    boxType: "in",
+    isRead: false,
+    isDraft: false,
+    from: "customer@example.com",
+    to: "sales@example.com, colleague@example.com",
+    toUsers: [
+      { address: "SALES@example.com" },
+      { address: "colleague@example.com" },
+    ],
+    cc: "observer@example.com",
+    ccUsers: [{ address: "observer@example.com" }],
+    subject: "Question",
+    date: "2026-07-27T10:00:00.000Z",
+    bodyText: "Hello",
+    bodyHtml: "<p>Hello</p>",
+    attachments: [],
+  };
+  const reply = buildComposeInitial(sourceMessage, "replyAll", [
+    "team@example.com",
+    "sales@example.com",
+  ]);
 
   assert.equal(reply.accountEmail, "team@example.com");
   assert.equal(reply.identityEmail, "sales@example.com");
   assert.equal(reply.to, "customer@example.com, colleague@example.com");
   assert.equal(reply.cc, "observer@example.com");
+  assert.equal(reply.reference?.from, "customer@example.com");
+  assert.equal(reply.reference?.subject, "Question");
+  assert.equal(reply.reference?.preview, "Hello");
+  assert.equal(
+    canReplyAll(sourceMessage, ["team@example.com", "sales@example.com"]),
+    true,
+    "shows Reply all when another recipient participates in the message"
+  );
+  assert.equal(
+    canReplyAll(
+      {
+        ...sourceMessage,
+        to: "sales@example.com",
+        toUsers: [{ address: "sales@example.com" }],
+        cc: "",
+        ccUsers: [],
+      },
+      ["team@example.com", "sales@example.com"]
+    ),
+    false,
+    "hides Reply all when replying would only target the sender"
+  );
+
+  const forward = buildComposeInitial(sourceMessage, "forward");
+  assert.equal(forward.reference?.from, "customer@example.com");
+  assert.match(forward.body || "", /Forwarded message/);
+
+  const rawAddressReply = buildComposeInitial(
+    { ...sourceMessage, toUsers: undefined, ccUsers: undefined },
+    "replyAll",
+    ["sales@example.com"]
+  );
+  assert.equal(
+    rawAddressReply.to,
+    "customer@example.com, colleague@example.com"
+  );
+  assert.equal(rawAddressReply.cc, "observer@example.com");
 
   const draft = buildComposeInitial(
     {
@@ -207,7 +330,13 @@ try {
   assert.throws(
     () =>
       buildComposeInitial(
-        { ...draft, id: 8, isDraft: true, mailId: "provider-draft", rawId: "raw-draft" },
+        {
+          ...draft,
+          id: 8,
+          isDraft: true,
+          mailId: "provider-draft",
+          rawId: "raw-draft",
+        },
         "draft"
       ),
     /read-only/,
@@ -229,7 +358,14 @@ try {
                 message: {},
                 to: `user${index + 1}@example.com`,
               }))
-            : [{ id: 101, status: "pending", message: {}, to: "user101@example.com" }],
+            : [
+                {
+                  id: 101,
+                  status: "pending",
+                  message: {},
+                  to: "user101@example.com",
+                },
+              ],
         meta: { count: 101 },
       };
     }
@@ -242,6 +378,19 @@ try {
         encoding: "7bit",
         mimetype: "text/plain",
       };
+    }
+    if (resource === "mail" && action === "oauth2url") {
+      if (!options.query?.type) throw new Error("cannot find type");
+      return { url: "https://mail.example.test/authorize" };
+    }
+    if (resource === "mailMessages" && action === "get") {
+      return { id: 42, isDraft: true, subject: "Recovered draft" };
+    }
+    if (resource === "mail" && action === "accountIdentitiesSync") {
+      return [
+        { id: 1, email: "team@example.com", isPrimary: true },
+        { id: 2, email: "sales@example.com", isPrimary: false },
+      ];
     }
     return {};
   };
@@ -268,12 +417,66 @@ try {
     assert.equal(massList.count, 101);
     assert.equal(massList.rows.length, 101, "loads every bulk task page");
     assert.equal(
-      calls.filter(({ resource, action }) => resource === "mailMassMessages" && action === "list").length,
+      calls.filter(
+        ({ resource, action }) =>
+          resource === "mailMassMessages" && action === "list"
+      ).length,
       2
     );
     assert.equal(uploaded.filename, "draft.txt");
     assert.equal(uploaded.mimeType, "text/plain");
     assert.ok(calls.at(-1).options.body instanceof FormData);
+
+    const oauthUrl = await mailApi.getOAuthUrl("google", {
+      email: "team@example.com",
+      reauthorize: true,
+    });
+    await mailApi.deleteAccount("team@example.com");
+    await mailApi.resyncAccount("team@example.com");
+    const recoveredDraft = await mailApi.findDraft({
+      accountEmail: "team@example.com",
+      identityEmail: "sales@example.com",
+      to: ["customer@example.com"],
+    });
+    const identities = await mailApi.syncAliases("team@example.com");
+    assert.equal(oauthUrl, "https://mail.example.test/authorize");
+    assert.equal(recoveredDraft?.id, 42);
+    assert.deepEqual(
+      identities.map((identity) => identity.email),
+      ["team@example.com", "sales@example.com"]
+    );
+    assert.deepEqual(
+      calls
+        .slice(-5)
+        .map(({ resource, action, options }) => [
+          resource,
+          action,
+          options.query ?? options.body,
+        ]),
+      [
+        [
+          "mail",
+          "oauth2url",
+          { type: "google", email: "team@example.com", reauthorize: true },
+        ],
+        ["mail", "deleteMailAccount", { email: "team@example.com" }],
+        ["mail", "messagesResync", { email: "team@example.com" }],
+        [
+          "mailMessages",
+          "get",
+          {
+            filter: JSON.stringify({
+              isDraft: true,
+              from: "sales@example.com",
+              email: "team@example.com",
+              to: ["customer@example.com"],
+            }),
+            appends: "labels,note",
+          },
+        ],
+        ["mail", "accountIdentitiesSync", { email: "team@example.com" }],
+      ]
+    );
   } finally {
     nocobaseClient.action = originalAction;
   }

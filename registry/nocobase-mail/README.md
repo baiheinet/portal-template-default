@@ -7,17 +7,25 @@ After installation, import the components from `@/extensions/nocobase-mail`.
 - `MailInbox` full inbox with toolbar, table, detail panel, and compose.
 - `MailCompose` / `MailComposeForm` standalone compose dialog or embedded form,
   with immediate and scheduled sending plus opt-in bulk mode, account-aware sender aliases,
-  server templates/signatures, recipient suggestions, and real attachment uploads.
+  server templates/signatures, recipient suggestions, reply/forward references, automatic draft
+  saving and recovery, and real attachment uploads.
 - `MailComposeAttachments` uploads files through `mail:messageAttachmentUpload`
   with retry, removal, and the backend's 25 MB limit.
 - `MailFilters` folder, read-state, label, and starred-message filters.
-- `MailUnreadProvider` / `MailUnreadIcon` unread-count polling and navigation badge.
+- `MailUnreadProvider` / `MailUnreadIndicator` / `MailUnreadIcon` reusable unread-count
+  display with interval, window-focus, and visibility refresh.
+- `MailDetail` threaded message detail with per-message Reply, conditional Reply all,
+  and Forward actions.
+- `MailSettingsDrawer` personal mailbox settings with Mailbox, Labels, Templates,
+  and Signature management tabs.
 - `MailMassTracking` bulk delivery tracking with recipient status, cancel, and resend.
 - `useMailMessages` hook for paginated message listing with search and filters.
 - `useMailCompose` hook to open compose from anywhere.
 - `MailLabelBadge` / `MailLabelsEditor` label display, assignment, and full CRUD.
 - `MailNoteEditor` per-message private notes.
 - `MailAttachmentList` attachment preview and download.
+- Message detail resolves authenticated `cid:` inline images and keeps those images out of the
+  regular attachment list.
 
 The mail API client (`mailApi`) uses the Starter's built-in `API_URL`, `getNocoBaseHeaders`, and `NOCOBASE_TOKEN_KEY` from `@/providers/constants`. A compatible NocoBase backend with the mail plugin enabled is required.
 
@@ -56,6 +64,10 @@ content but no subject. Signatures are stored per mail account in
 the available/default signature. Use `recipientOptions` on the compose
 components to add application-specific record recipients alongside NocoBase
 users.
+
+Gmail aliases can be viewed and refreshed from Mail settings. Synced aliases are
+immediately available in the compose sender selector. Outlook does not expose
+sender aliases through this integration.
 
 Mailbox account creation, OAuth authorization, and provider settings are not
 part of this component package; they remain owned by the separate mail settings

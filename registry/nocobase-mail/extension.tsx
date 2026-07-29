@@ -1,20 +1,21 @@
 import type { AppExtension } from "@/app/extension";
 import {
   ListFilter,
+  Mail,
+  MessagesSquare,
   PanelsLeftRight,
   PenLine,
-  Send,
   Users,
   UsersRound,
 } from "lucide-react";
 import { Outlet, Route } from "react-router";
-import { MailUnreadIcon, MailUnreadProvider } from "./components";
+import { MailUnreadProvider } from "./components";
 import { MailBulkPage, MailComposePage, MailManagerPage } from "./mail-pages";
 import {
   MailAudienceScenario,
-  MailComposeAnywhereScenario,
   MailCorrespondenceScenario,
   MailScenarioOverview,
+  MailUnreadScenario,
 } from "./mail-demo-pages";
 
 const nocobaseMailExtension: AppExtension = {
@@ -26,7 +27,7 @@ const nocobaseMailExtension: AppExtension = {
       list: "/admin/mail",
       meta: {
         label: "Mail",
-        icon: <MailUnreadIcon />,
+        icon: <Mail />,
         description: "Read, send, and manage mailbox messages.",
       },
     },
@@ -35,7 +36,7 @@ const nocobaseMailExtension: AppExtension = {
       list: "/admin/mail-demos/workspace",
       meta: {
         parent: "mail",
-        label: "Mail workspace",
+        label: "My mailbox",
         icon: <PanelsLeftRight />,
       },
     },
@@ -44,8 +45,17 @@ const nocobaseMailExtension: AppExtension = {
       list: "/admin/mail-demos/personal",
       meta: {
         parent: "mail",
-        label: "Personal & all users",
+        label: "Mailbox views",
         icon: <Users />,
+      },
+    },
+    {
+      name: "mail-scenario-unread",
+      list: "/admin/mail-demos/unread",
+      meta: {
+        parent: "mail",
+        label: "Unread indicator",
+        icon: <MessagesSquare />,
       },
     },
     {
@@ -53,7 +63,7 @@ const nocobaseMailExtension: AppExtension = {
       list: "/admin/mail/compose",
       meta: {
         parent: "mail",
-        label: "Compose page",
+        label: "Compose & send",
         icon: <PenLine />,
       },
     },
@@ -64,15 +74,6 @@ const nocobaseMailExtension: AppExtension = {
         parent: "mail",
         label: "Correspondence per user",
         icon: <ListFilter />,
-      },
-    },
-    {
-      name: "mail-scenario-compose-anywhere",
-      list: "/admin/mail-demos/compose-anywhere",
-      meta: {
-        parent: "mail",
-        label: "Send to anyone",
-        icon: <Send />,
       },
     },
     {
@@ -95,8 +96,8 @@ const nocobaseMailExtension: AppExtension = {
         <Route index element={<MailScenarioOverview />} />
         <Route path="workspace" element={<MailManagerPage />} />
         <Route path="personal" element={<MailAudienceScenario />} />
+        <Route path="unread" element={<MailUnreadScenario />} />
         <Route path="filtered" element={<MailCorrespondenceScenario />} />
-        <Route path="compose-anywhere" element={<MailComposeAnywhereScenario />} />
       </Route>
     </Route>
   ),
