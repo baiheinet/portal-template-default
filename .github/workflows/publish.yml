@@ -41,9 +41,18 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Print tool versions
+        run: |
+          node --version
+          npm --version
+          pnpm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -82,7 +91,7 @@ jobs:
         run: pnpm build
 
       - name: Publish package
-        run: npm publish --access public --tag "${{ inputs.tag }}"
+        run: npm publish --access public --tag "${{ inputs.tag }}" --provenance --loglevel verbose
 
       - name: Commit and tag release
         env:
