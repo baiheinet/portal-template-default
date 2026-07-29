@@ -82,8 +82,6 @@ jobs:
 
       - name: Publish package
         run: npm publish --access public --tag "${{ inputs.tag }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit and tag release
         env:
