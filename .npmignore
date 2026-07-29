@@ -13,3 +13,4 @@ registry.config.json
 registry.json
 public/r/
 scripts/registry.mjs
+!.gitignore
