@@ -90,7 +90,7 @@ function UserCreateForm() {
         onSubmit={form.handleSubmit((values) => onFinish(values))}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <div className="resource-form min-h-0 flex-1 overflow-y-auto px-5 py-5">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5 [&_[data-slot=input]]:h-10 [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=textarea]]:min-h-56">
           <UserFormFields form={form} includePassword translate={translate} />
         </div>
         <RouteDrawerFooter className="flex-row justify-end">
