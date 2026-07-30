@@ -6,5 +6,6 @@ import { defineAppRoutes } from "@/app/route-runtime";
 export const registryRoutesEnabled = true;
 
 // Add application-owned business routes here. Installed Registry extensions
-// contribute their own route definitions through the same runtime.
+// contribute their own route definitions through the same runtime. Add a
+// resource entry when a route should also appear in navigation.
 export const appRoutes = defineAppRoutes([]);

@@ -162,9 +162,10 @@ const hasResourceActionRoute = (routes: AppRouteDefinition[]): boolean =>
 
 export function renderAppRoutes(routes: AppRouteDefinition[]): ReactElement[] {
   return routes.map((route) => {
-    // Resource actions are nested so the list stays mounted behind a drawer or
-    // dialog. Own that required outlet here unless a layout deliberately
-    // renders or consumes the outlet itself.
+    // resourceAction only binds Refine action paths. This provides the mount
+    // point that keeps the resource page mounted; the child element still owns
+    // whether it renders a drawer, dialog, or other presentation. A specialized
+    // layout can opt out and place or consume the outlet itself.
     const content =
       route.element &&
       route.resource &&
