@@ -116,6 +116,11 @@ if (action === "build") {
   for (const item of items) {
     console.log(`${item.name}: ${item.files.length} files`);
   }
+} else if (action === "link" || action === "unlink") {
+  for (const source of sourceMappings.values()) {
+    if (action === "link") linkSource(source);
+    else unlinkSource(source);
+  }
 } else {
   const outputRootIndex = process.argv.indexOf("--output-root");
   if (outputRootIndex !== -1 && !process.argv[outputRootIndex + 1]) {
