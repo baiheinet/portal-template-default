@@ -1,5 +1,6 @@
 export const starter = {
   "shell.workspace": "AI 应用工作区",
+  "shell.settings": "后台设置",
   "shell.footer.freedom": "AI 自由构建。",
   "shell.footer.reliabilitySuffix": "保障可靠运行。",
   "auth.signOut": "退出登录",
