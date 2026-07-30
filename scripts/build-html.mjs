@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadEnv } from "vite";
+import * as util from "node:util";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -12,9 +12,66 @@ const indexPath = path.join(distDir, "index.html");
 const startMarker = "<!-- nocobase-runtime-config:start -->";
 const endMarker = "<!-- nocobase-runtime-config:end -->";
 
+const parseEnv = (content) => {
+  if (typeof util.parseEnv === "function") return util.parseEnv(content);
+
+  const parsed = {};
+  const linePattern =
+    /^\s*(?:export\s+)?([\w.-]+)\s*=\s*('(?:\\'|[^'])*'|"(?:\\"|[^"])*"|[^#\r\n]*)?\s*(?:#.*)?$/;
+
+  for (const line of content.split(/\r?\n/)) {
+    const match = line.match(linePattern);
+    if (!match) continue;
+
+    const [, key, rawValue = ""] = match;
+    const quote = rawValue[0];
+    let value = rawValue.trim();
+
+    if (
+      (quote === '"' || quote === "'") &&
+      value.endsWith(quote) &&
+      value.length >= 2
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    parsed[key] = value.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
+  }
+
+  return parsed;
+};
+
+const expandEnvValue = (value, env) =>
+  value.replace(/\\?\${?([A-Za-z_][A-Za-z0-9_]*)}?/g, (match, key) => {
+    if (match.startsWith("\\")) return match.slice(1);
+    return env[key] ?? "";
+  });
+
+const getEnvFilesForMode = (mode) => {
+  if (mode === "local") {
+    throw new Error(
+      '"local" cannot be used as a mode name because it conflicts with .env.local.'
+    );
+  }
+
+  return [".env", ".env.local", `.env.${mode}`, `.env.${mode}.local`].map(
+    (file) => path.join(rootDir, file)
+  );
+};
+
 const loadBuildHtmlEnv = () => {
   const mode = process.env.MODE || "production";
-  const env = loadEnv(mode, rootDir, "");
+  const env = {};
+
+  for (const envFile of getEnvFilesForMode(mode)) {
+    if (!fs.existsSync(envFile)) continue;
+    Object.assign(env, parseEnv(fs.readFileSync(envFile, "utf8")));
+  }
+
+  const expansionEnv = { ...env, ...process.env };
+  for (const [key, value] of Object.entries(env)) {
+    env[key] = expandEnvValue(value, expansionEnv);
+  }
 
   for (const [key, value] of Object.entries(env)) {
     if (process.env[key] === undefined) {
