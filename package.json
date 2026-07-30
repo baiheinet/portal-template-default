@@ -1,6 +1,6 @@
 {
   "name": "@nocobase/portal-template-default",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "packageManager": "pnpm@10.28.0",
   "type": "module",
   "devDependencies": {
