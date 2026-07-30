@@ -78,7 +78,7 @@
     "url": "git+https://github.com/nocobase/portal-template-default.git"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0",
     "build": "tsc && refine build",
     "build:html": "node ./scripts/build-html.mjs",
     "test:auth": "node tests/auth-session-regression.mjs",
