@@ -31,6 +31,37 @@
       }
     },
     {
+      "name": "users-example",
+      "type": "registry:block",
+      "title": "NocoBase Users Example",
+      "description": "Complete Users resource example with ACL-aware list, filters, route-backed drawers, nested role details, and optional AI page context.",
+      "dependencies": [
+        "@refinedev/core@^5.0.8",
+        "@refinedev/react-hook-form@^5.0.0",
+        "@refinedev/react-table@^6.0.0",
+        "@tanstack/react-table@^8.2.6",
+        "lucide-react@^0.487.0",
+        "react-hook-form@^7.57.0",
+        "react-router@^7.0.2"
+      ],
+      "registryDependencies": [
+        "@nocobase/route-surfaces",
+        "alert",
+        "badge",
+        "button",
+        "form",
+        "input",
+        "separator",
+        "skeleton"
+      ],
+      "docs": "Requires the compatible Portal Starter resource components, data table, NocoBase data provider, and ACL provider. AI page-element and form registration is enabled automatically when @nocobase/ai is also installed.",
+      "source": {
+        "root": "registry/nocobase-users-example",
+        "target": "src/extensions/nocobase-users-example",
+        "include": ["."]
+      }
+    },
+    {
       "name": "i18n",
       "type": "registry:block",
       "title": "NocoBase i18n",
@@ -54,7 +85,6 @@
       "source": {
         "root": "registry/nocobase-i18n",
         "target": "src/extensions/nocobase-i18n",
-        "install": false,
         "include": ["."]
       }
     },
@@ -71,7 +101,6 @@
       "source": {
         "root": "registry/nocobase-auth-oidc",
         "target": "src/extensions/nocobase-auth-oidc",
-        "install": false,
         "include": ["."]
       }
     },
@@ -88,7 +117,6 @@
       "source": {
         "root": "registry/nocobase-auth-saml",
         "target": "src/extensions/nocobase-auth-saml",
-        "install": false,
         "include": ["."]
       }
     },
@@ -105,7 +133,6 @@
       "source": {
         "root": "registry/nocobase-auth-cas",
         "target": "src/extensions/nocobase-auth-cas",
-        "install": false,
         "include": ["."]
       }
     },
@@ -118,7 +145,6 @@
       "source": {
         "root": "registry/nocobase-auth-ldap",
         "target": "src/extensions/nocobase-auth-ldap",
-        "install": false,
         "include": ["."]
       }
     },
@@ -131,7 +157,6 @@
       "source": {
         "root": "registry/nocobase-auth-sms",
         "target": "src/extensions/nocobase-auth-sms",
-        "install": false,
         "include": ["."]
       }
     },
@@ -148,7 +173,6 @@
       "source": {
         "root": "registry/nocobase-auth-wecom",
         "target": "src/extensions/nocobase-auth-wecom",
-        "install": false,
         "include": ["."]
       }
     },
@@ -166,7 +190,6 @@
       "source": {
         "root": "registry/nocobase-auth-dingtalk",
         "target": "src/extensions/nocobase-auth-dingtalk",
-        "install": false,
         "include": ["."]
       }
     },

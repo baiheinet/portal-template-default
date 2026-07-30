@@ -4,6 +4,7 @@ import { useLocation } from "react-router";
 import { LoadingState } from "@/components/app-shell/loading-state";
 import { clearAcl } from "@/lib/nocobase/acl";
 import { nocobaseClient } from "@/lib/nocobase/client";
+import { resolvePortalUrl } from "@/providers/runtime-config";
 
 import { isDingtalkBrowser } from "./use-dingtalk-sign-in";
 
@@ -19,6 +20,29 @@ type SignInResponse = {
   token?: string;
 };
 
+type DingtalkAuthCodeResult = {
+  code?: string;
+  authCode?: string;
+};
+
+type DingtalkAuthCodeOptions = {
+  corpId: string;
+  success: (result: DingtalkAuthCodeResult) => void;
+  fail: (error: { errorMessage?: string; message?: string }) => void;
+};
+
+type DingtalkApi = {
+  ready?: (callback: () => void) => void;
+  getAuthCode?: (options: DingtalkAuthCodeOptions) => void;
+  runtime?: {
+    permission?: {
+      requestAuthCode?: (
+        options: DingtalkAuthCodeOptions
+      ) => Promise<DingtalkAuthCodeResult> | void;
+    };
+  };
+};
+
 const publicAuthPaths = new Set([
   "/login",
   "/signin",
@@ -28,14 +52,17 @@ const publicAuthPaths = new Set([
 
 async function requestDingtalkAuthCode(corpId: string) {
   const module = await import("dingtalk-jsapi");
-  const dd = ((module as { default?: unknown }).default ?? module) as any;
+  const dd = ((module as { default?: unknown }).default ??
+    module) as DingtalkApi;
 
   return new Promise<string>((resolve, reject) => {
-    const success = (result: { code?: string; authCode?: string }) => {
+    const success = (result: DingtalkAuthCodeResult) => {
       const code = result?.code ?? result?.authCode;
-      code
-        ? resolve(String(code))
-        : reject(new Error("DingTalk did not return an authorization code."));
+      if (code) {
+        resolve(String(code));
+      } else {
+        reject(new Error("DingTalk did not return an authorization code."));
+      }
     };
     const fail = (error: { errorMessage?: string; message?: string }) =>
       reject(
@@ -60,7 +87,11 @@ async function requestDingtalkAuthCode(corpId: string) {
     };
 
     try {
-      typeof dd?.ready === "function" ? dd.ready(run) : run();
+      if (typeof dd.ready === "function") {
+        dd.ready(run);
+      } else {
+        run();
+      }
     } catch (error) {
       fail(error as Error);
     }
@@ -73,7 +104,7 @@ export default function DingtalkAutoLoginProvider({
   const { pathname, search } = useLocation();
   const attemptedRef = useRef(false);
   const insideDingtalk = isDingtalkBrowser();
-  const redirect = `${pathname}${search}`;
+  const redirect = resolvePortalUrl(`${pathname}${search}`);
   const shouldCheck =
     insideDingtalk &&
     !nocobaseClient.getToken() &&

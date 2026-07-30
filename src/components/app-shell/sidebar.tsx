@@ -31,17 +31,33 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, ListIcon, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Brand } from "@/components/app-shell/brand";
-import { filterMenuItemsByAcl, useAclSnapshot } from "@/lib/nocobase/acl";
+import { filterMenuItemsByAcl, useAclState } from "@/lib/nocobase/acl";
 import { getResourceLabel } from "@/components/resources/resource-label";
 
 export function Sidebar() {
-  const { open } = useShadcnSidebar();
   const { menuItems, selectedKey } = useMenu();
-  const acl = useAclSnapshot();
+  const acl = useAclState();
   const allowedMenuItems = React.useMemo(
-    () => filterMenuItemsByAcl(menuItems, acl),
+    () =>
+      acl.status === "ready"
+        ? filterMenuItemsByAcl(menuItems, acl.permissions)
+        : [],
     [acl, menuItems]
   );
+
+  return (
+    <SidebarNavigation menuItems={allowedMenuItems} selectedKey={selectedKey} />
+  );
+}
+
+export function SidebarNavigation({
+  menuItems,
+  selectedKey,
+}: {
+  menuItems: TreeMenuItem[];
+  selectedKey?: string;
+}) {
+  const { open } = useShadcnSidebar();
 
   return (
     <ShadcnSidebar
@@ -64,7 +80,7 @@ export function Sidebar() {
           }
         )}
       >
-        {allowedMenuItems.map((item: TreeMenuItem) => (
+        {menuItems.map((item: TreeMenuItem) => (
           <SidebarItem
             key={item.key || item.name}
             item={item}
