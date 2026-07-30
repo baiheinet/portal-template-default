@@ -5,7 +5,7 @@ import { AccessDenied } from "@/components/access-control/access-denied";
 import { CanAccess } from "@/components/access-control/can-access";
 import { UserCreate } from "./create";
 import { UserEdit } from "./edit";
-import { UserResourceLayout } from "./layout";
+import { UserList } from "./list";
 import { RoleDetailRoute } from "./role-detail";
 import { userRoutes } from "./routes";
 import { UserShow } from "./show";
@@ -14,7 +14,11 @@ export const usersExampleRoutes = defineAppRoutes([
   {
     name: "users",
     path: userRoutes.list,
-    element: <UserResourceLayout />,
+    element: (
+      <CanAccess resource="users" action="list" fallback={<AccessDenied />}>
+        <UserList />
+      </CanAccess>
+    ),
     resource: {
       meta: {
         label: "Users",

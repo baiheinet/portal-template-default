@@ -1,5 +1,10 @@
 import type { ResourceProps } from "@refinedev/core";
-import { createElement, type ReactElement, type ReactNode } from "react";
+import {
+  createElement,
+  Fragment,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { Outlet, Route } from "react-router";
 
 import type { ResourceAcl, RouteAccessConstraint } from "@/lib/nocobase/acl";
@@ -18,6 +23,7 @@ type AppRouteBase = {
   name: string;
   element?: ReactNode;
   access?: RouteAccessConstraint;
+  outlet?: "auto" | "manual";
 };
 
 type AppRouteResourceBinding =
@@ -147,9 +153,30 @@ export function buildRouteResources(
   });
 }
 
+const hasResourceActionRoute = (routes: AppRouteDefinition[]): boolean =>
+  routes.some(
+    (route) =>
+      Boolean(route.resourceAction) ||
+      hasResourceActionRoute(route.children ?? [])
+  );
+
 export function renderAppRoutes(routes: AppRouteDefinition[]): ReactElement[] {
   return routes.map((route) => {
-    const content = route.element ?? createElement(Outlet);
+    // Resource actions are nested so the list stays mounted behind a drawer or
+    // dialog. Own that required outlet here unless a layout deliberately
+    // renders or consumes the outlet itself.
+    const content =
+      route.element &&
+      route.resource &&
+      route.outlet !== "manual" &&
+      hasResourceActionRoute(route.children ?? [])
+        ? createElement(
+            Fragment,
+            null,
+            route.element,
+            createElement(Outlet)
+          )
+        : route.element ?? createElement(Outlet);
     const element = route.access
       ? createElement(RouteAccessGuard, { access: route.access }, content)
       : content;
