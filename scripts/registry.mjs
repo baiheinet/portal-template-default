@@ -129,7 +129,6 @@ if (action === "build") {
 
   for (const { item } of sourceItems) {
     const source = item.source;
-    if (source.install === false) continue;
 
     const key = `${source.root}\0${source.target}`;
     const mapping = mappings.get(key) ?? {

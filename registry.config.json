@@ -85,7 +85,6 @@
       "source": {
         "root": "registry/nocobase-i18n",
         "target": "src/extensions/nocobase-i18n",
-        "install": false,
         "include": ["."]
       }
     },
@@ -102,7 +101,6 @@
       "source": {
         "root": "registry/nocobase-auth-oidc",
         "target": "src/extensions/nocobase-auth-oidc",
-        "install": false,
         "include": ["."]
       }
     },
@@ -119,7 +117,6 @@
       "source": {
         "root": "registry/nocobase-auth-saml",
         "target": "src/extensions/nocobase-auth-saml",
-        "install": false,
         "include": ["."]
       }
     },
@@ -136,7 +133,6 @@
       "source": {
         "root": "registry/nocobase-auth-cas",
         "target": "src/extensions/nocobase-auth-cas",
-        "install": false,
         "include": ["."]
       }
     },
@@ -149,7 +145,6 @@
       "source": {
         "root": "registry/nocobase-auth-ldap",
         "target": "src/extensions/nocobase-auth-ldap",
-        "install": false,
         "include": ["."]
       }
     },
@@ -162,7 +157,6 @@
       "source": {
         "root": "registry/nocobase-auth-sms",
         "target": "src/extensions/nocobase-auth-sms",
-        "install": false,
         "include": ["."]
       }
     },
@@ -179,7 +173,6 @@
       "source": {
         "root": "registry/nocobase-auth-wecom",
         "target": "src/extensions/nocobase-auth-wecom",
-        "install": false,
         "include": ["."]
       }
     },
@@ -197,7 +190,6 @@
       "source": {
         "root": "registry/nocobase-auth-dingtalk",
         "target": "src/extensions/nocobase-auth-dingtalk",
-        "install": false,
         "include": ["."]
       }
     },
