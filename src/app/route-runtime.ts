@@ -26,33 +26,37 @@ type AppRouteBase = {
   outlet?: "auto" | "manual";
 };
 
-type AppRouteResourceBinding =
-  | {
-      resource: AppRouteResource;
-      resourceAction?: never;
-    }
-  | {
-      resource?: never;
-      resourceAction: ResourceRouteAction;
-    }
-  | {
-      resource?: never;
-      resourceAction?: never;
-    };
+// The application index redirects to the first accessible menu resource.
+// Resource routes therefore need an explicit path and cannot be index routes.
+type AppIndexRouteDefinition = AppRouteBase & {
+  index: true;
+  path?: never;
+  children?: never;
+  resource?: never;
+  resourceAction?: never;
+};
 
-type AppIndexRouteDefinition = AppRouteBase &
-  AppRouteResourceBinding & {
-    index: true;
-    path?: never;
-    children?: never;
-  };
-
-type AppPathRouteDefinition = AppRouteBase &
-  AppRouteResourceBinding & {
-    index?: false;
-    path?: string;
-    children?: AppRouteDefinition[];
-  };
+type AppPathRouteDefinition = AppRouteBase & {
+  index?: false;
+  children?: AppRouteDefinition[];
+} &
+  (
+    | {
+        path: string;
+        resource: AppRouteResource;
+        resourceAction?: never;
+      }
+    | {
+        path: string;
+        resource?: never;
+        resourceAction: ResourceRouteAction;
+      }
+    | {
+        path?: string;
+        resource?: never;
+        resourceAction?: never;
+      }
+  );
 
 export type AppRouteDefinition =
   | AppIndexRouteDefinition
@@ -123,11 +127,7 @@ export function buildRouteResources(
     const resource = route.resource
       ? {
           name: route.name,
-          list: route.index
-            ? parentPath || "/"
-            : route.path
-            ? fullPath
-            : undefined,
+          list: fullPath,
           ...getResourceActionRoutes(
             route.children ?? [],
             fullPath,

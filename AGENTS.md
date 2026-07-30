@@ -16,6 +16,8 @@ Components copied from shadcn/ui are owned and maintained by this project; upstr
 
 Put application-owned business routes in `src/routes.tsx` with `defineAppRoutes`. A route with a `resource` entry contributes its Refine resource and navigation item, while the same definition generates its React Router route. Mark create, edit, and show children with `resourceAction` so their paths populate the same Refine resource instead of being repeated. Use `access.roles` for route-level role constraints; nested routes inherit parent constraints, and the runtime applies the complete chain to both menu visibility and direct URL access. Do not repeat those roles in `resource.meta.acl` or a manually written route guard.
 
+Give every resource route a real path such as `/dashboard`. Do not combine `index: true` with `resource` or `resourceAction`; the application index is reserved for navigation to the first accessible menu route.
+
 `resourceAction` assigns a child path to the parent Refine resource's create, edit, or show URL; it does not choose the presentation. The automatic outlet keeps the resource page mounted, so the child must render `RouteDrawer` or `RouteDialog`; use `outlet: "manual"` when a full page should replace the list or needs custom nesting.
 
 Every page intended to appear in the sidebar must declare both its route and a `resource` entry; a route element alone is not a menu item.
