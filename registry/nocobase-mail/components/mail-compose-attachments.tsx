@@ -113,11 +113,11 @@ export function MailComposeAttachments({
         }}
       />
       {rows.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex min-w-0 flex-wrap gap-2">
           {rows.map((row) => (
             <span
               key={row.id}
-              className="flex items-center gap-1.5 rounded-md border border-border/80 bg-muted/50 px-2 py-1 text-xs"
+              className="flex min-w-0 max-w-full items-center gap-1.5 rounded-md border border-border/80 bg-muted/50 px-2 py-1 text-xs"
             >
               {row.status === "uploading" ? (
                 <Loader2 className="size-3 animate-spin text-muted-foreground" />
@@ -126,7 +126,7 @@ export function MailComposeAttachments({
               ) : (
                 <Paperclip className="size-3 text-muted-foreground" />
               )}
-              <span className="max-w-52 truncate">{row.name}</span>
+              <span className="min-w-0 max-w-52 truncate">{row.name}</span>
               {row.status === "error" && row.file && (
                 <button
                   type="button"

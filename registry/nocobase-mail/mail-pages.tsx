@@ -42,7 +42,10 @@ export function MailManagerPage() {
         : undefined,
       isRead: read === "read" ? true : read === "unread" ? false : undefined,
       labelId: Number.isFinite(label) && label > 0 ? label : undefined,
-      isTodo: searchParams.get("starred") === "1" ? true : undefined,
+      isTodo:
+        searchParams.get("todo") === "1" || searchParams.get("starred") === "1"
+          ? true
+          : undefined,
     };
   }, [searchParams]);
 
@@ -53,7 +56,7 @@ export function MailManagerPage() {
       params.set("read", next.isRead ? "read" : "unread");
     }
     if (next.labelId) params.set("label", String(next.labelId));
-    if (next.isTodo) params.set("starred", "1");
+    if (next.isTodo) params.set("todo", "1");
     setSearchParams(params, { replace: true });
   };
 

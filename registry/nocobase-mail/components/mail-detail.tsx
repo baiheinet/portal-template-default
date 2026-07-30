@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import {
   ChevronDown,
+  Circle,
+  CircleCheckBig,
   Clock3,
   CornerUpLeft,
   CornerUpRight,
   Forward,
   MessagesSquare,
+  MailX,
   Paperclip,
-  Star,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -61,6 +63,99 @@ function initials(name: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
+}
+
+const MAIL_QUOTE_SELECTORS = [
+  '[data-role="reply-quote"]',
+  ".gmail_quote",
+  'blockquote[type="cite"]',
+  // 163 Mail
+  "#divNeteaseMailCard",
+  ".nui-mail-quote",
+  // QQ Mail and Foxmail
+  "#isForwardContent",
+  "#isReplyContent",
+  "#foxmail_quote",
+  // Outlook and Hotmail
+  "#divRplyFwdMsg",
+  ".OutlookMessageHeader",
+  // Yahoo Mail
+  "#yahoo_quoted",
+  // Common quote and reply containers
+  "blockquote",
+  '[class*="quote"]',
+  '[id*="quote"]',
+  '[class*="reply"]',
+  '[id*="reply"]',
+];
+
+function collapseQuotedContent(doc: Document, onHeightChange: () => void) {
+  if (doc.querySelector(".mail-quote")) return;
+
+  const nodes = Array.from(
+    doc.querySelectorAll(MAIL_QUOTE_SELECTORS.join(","))
+  );
+  const topLevelNodes = nodes.filter(
+    (node) =>
+      !nodes.some(
+        (otherNode) => otherNode !== node && otherNode.contains(node)
+      )
+  );
+  const quotedContent = topLevelNodes[0];
+  if (!quotedContent?.parentNode) return;
+
+  const style = doc.createElement("style");
+  style.textContent = `
+    img { max-width: 100%; height: auto; }
+    .mail-quote { margin-top: 12px; }
+    .mail-quote-toggle {
+      appearance: none;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      color: #1677ff;
+      font: inherit;
+      font-size: 12px;
+      margin-bottom: 6px;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .mail-quote-toggle .toggle-icon {
+      display: inline-block;
+      transition: transform 0.2s ease;
+      font-size: 10px;
+      margin-top: 1px;
+    }
+    .mail-quote.is-collapsed .toggle-icon { transform: rotate(-90deg); }
+    .mail-quote.is-collapsed > *:not(.mail-quote-toggle) { display: none; }
+  `;
+  doc.head.appendChild(style);
+
+  const wrapper = doc.createElement("div");
+  wrapper.className = "mail-quote is-collapsed";
+  const toggle = doc.createElement("button");
+  toggle.type = "button";
+  toggle.className = "mail-quote-toggle";
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.title = "Show quoted content";
+  toggle.append("Replied message");
+  const icon = doc.createElement("span");
+  icon.className = "toggle-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "▼";
+  toggle.appendChild(icon);
+
+  quotedContent.parentNode.insertBefore(wrapper, quotedContent);
+  wrapper.append(toggle, quotedContent);
+  toggle.addEventListener("click", () => {
+    const collapsed = wrapper.classList.toggle("is-collapsed");
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+    toggle.title = collapsed ? "Show quoted content" : "Hide quoted content";
+    requestAnimationFrame(onHeightChange);
+  });
 }
 
 function MailHtmlBody({
@@ -123,6 +218,7 @@ function MailHtmlBody({
       try {
         const doc = frame.contentDocument;
         if (!doc?.body) return;
+        collapseQuotedContent(doc, resize);
         frame.style.height = `${doc.body.scrollHeight + 32}px`;
         if (!observer && typeof ResizeObserver !== "undefined") {
           observer = new ResizeObserver(() => {
@@ -156,7 +252,7 @@ function MailHtmlBody({
       sandbox="allow-same-origin"
       srcDoc={resolvedHtml}
       className="w-full border-0 bg-white transition-[height] duration-200"
-      style={{ minHeight: 240 }}
+      style={{ minHeight: 48 }}
     />
   );
 }
@@ -333,6 +429,7 @@ export function MailDetail({
   onReplyAll,
   onForward,
   onToggleTodo,
+  onMarkUnread,
   onTrash,
   onRestore,
   onDeleteForever,
@@ -347,6 +444,7 @@ export function MailDetail({
   onReplyAll?: (message: MailMessage) => void;
   onForward?: (message: MailMessage) => void;
   onToggleTodo?: (message: MailMessage) => void;
+  onMarkUnread?: (message: MailMessage) => void;
   onTrash?: (message: MailMessage) => void;
   onRestore?: (message: MailMessage) => void;
   onDeleteForever?: (message: MailMessage) => void;
@@ -484,14 +582,23 @@ export function MailDetail({
             <Button
               variant="ghost"
               size="icon-sm"
-              title={message.isTodo ? "Remove star" : "Star"}
+              aria-pressed={Boolean(message.isTodo)}
+              title={message.isTodo ? "Remove from todo" : "Add to todo"}
               onClick={() => onToggleTodo?.(message)}
             >
-              <Star
-                className={cn(
-                  message.isTodo && "fill-amber-400 text-amber-400"
-                )}
-              />
+              {message.isTodo ? (
+                <CircleCheckBig className="text-primary" />
+              ) : (
+                <Circle />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Mark as unread"
+              onClick={() => onMarkUnread?.(message)}
+            >
+              <MailX />
             </Button>
             {isTrash ? (
               <>

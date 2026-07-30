@@ -3,6 +3,8 @@ import { useGetIdentity } from "@refinedev/core";
 import {
   Archive,
   ChevronDown,
+  Circle,
+  CircleCheckBig,
   Clock3,
   FileText,
   FilterX,
@@ -10,9 +12,9 @@ import {
   Inbox,
   Mail,
   MailOpen,
+  ListTodo,
   Send,
   ShieldAlert,
-  Star,
   Tag,
   Tags,
   Trash2,
@@ -181,10 +183,10 @@ export function MailFilters({
           ))}
         </TreeGroup>
 
-        <TreeGroup label="Flags" icon={Star}>
+        <TreeGroup label="Tasks" icon={ListTodo}>
           <TreeItem
-            label="Starred"
-            icon={Star}
+            label="Todo"
+            icon={value.isTodo ? CircleCheckBig : Circle}
             selected={Boolean(value.isTodo)}
             onClick={() =>
               onChange({ ...value, isTodo: value.isTodo ? undefined : true })
@@ -259,9 +261,9 @@ export function MailFilters({
           onChange({ ...value, isTodo: value.isTodo ? undefined : true })
         }
       >
-        <SelectTrigger className="h-8 w-32"><SelectValue placeholder="Flag" /></SelectTrigger>
+        <SelectTrigger className="h-8 w-32"><SelectValue placeholder="Todo" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="todo">Starred</SelectItem>
+          <SelectItem value="todo">Todo</SelectItem>
         </SelectContent>
       </Select>
 

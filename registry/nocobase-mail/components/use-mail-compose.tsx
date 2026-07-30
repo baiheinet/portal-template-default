@@ -11,6 +11,7 @@ import type {
   ComposeMode,
   ComposeVariant,
 } from "./mail-compose";
+import { splitReplyQuote } from "./mail-reply-quote";
 
 function escapeHtml(value: string) {
   return value
@@ -55,6 +56,7 @@ function composeReference(message: MailMessage) {
     date: message.date,
     subject: message.subject,
     preview: message.bodyText || stripHtml(message.bodyHtml || ""),
+    html: originalBodyHtml(message),
   };
 }
 
@@ -115,6 +117,7 @@ export function buildComposeInitial(
         "Provider-backed drafts are read-only here. Edit them in the original mail provider."
       );
     }
+    const draftContent = splitReplyQuote(message.bodyHtml || message.bodyText || "");
     return {
       ...senderValues,
       id: message.id,
@@ -122,7 +125,8 @@ export function buildComposeInitial(
       to: message.toUsers?.map((user) => user.address).join(", ") || message.to,
       cc: message.ccUsers?.map((user) => user.address).join(", ") || message.cc,
       subject: message.subject,
-      body: message.bodyHtml || message.bodyText,
+      body: draftContent.body,
+      replyBody: draftContent.replyBody,
       replyTo: message.replyTo,
       attachments: (message.attachments ?? []).flatMap((attachment) =>
         attachment.path
@@ -183,9 +187,6 @@ export function buildComposeInitial(
         )
       : [];
 
-  const sender = escapeHtml(message.fromUser?.name || message.from);
-  const header = `<div>On ${escapeHtml(message.date)}, ${sender} wrote:</div>`;
-
   return {
     ...senderValues,
     to: toAddresses.join(", "),
@@ -194,7 +195,8 @@ export function buildComposeInitial(
       ? message.subject
       : `Re: ${message.subject}`,
     replyTo,
-    body: quoteBlock(header, message),
+    body: "",
+    replyBody: originalBodyHtml(message),
     reference: composeReference(message),
   };
 }

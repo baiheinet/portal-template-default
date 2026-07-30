@@ -13,10 +13,86 @@ try {
     new URL("../components/mail-table.tsx", import.meta.url),
     "utf8"
   );
+  const mailFiltersSource = await readFile(
+    new URL("../components/mail-filters.tsx", import.meta.url),
+    "utf8"
+  );
+  const mailDetailSource = await readFile(
+    new URL("../components/mail-detail.tsx", import.meta.url),
+    "utf8"
+  );
+  const mailInboxSource = await readFile(
+    new URL("../components/mail-inbox.tsx", import.meta.url),
+    "utf8"
+  );
+  const mailPagesSource = await readFile(
+    new URL("../mail-pages.tsx", import.meta.url),
+    "utf8"
+  );
   assert.match(
     mailTableSource,
     /<DropdownMenuContent[^>]*>\s*<DropdownMenuGroup>[\s\S]*?<DropdownMenuLabel>Toggle columns<\/DropdownMenuLabel>/,
     "keeps the Base UI columns label inside a menu group"
+  );
+  assert.match(
+    mailTableSource,
+    /unread &&[\s\S]*?\? "font-bold"/,
+    "renders unread mail cells with a clearly bold font weight"
+  );
+  assert.match(
+    mailFiltersSource,
+    /label="Todo"[\s\S]*?icon=\{value\.isTodo \? CircleCheckBig : Circle\}/,
+    "presents the backend todo flag as a todo filter"
+  );
+  assert.doesNotMatch(
+    mailFiltersSource,
+    /Starred|icon=\{Star\}/,
+    "does not present todo messages as starred mail"
+  );
+  assert.match(
+    mailDetailSource,
+    /aria-pressed=\{Boolean\(message\.isTodo\)\}[\s\S]*?"Add to todo"[\s\S]*?message\.isTodo \? \(/,
+    "renders the message todo control as an accessible toggle"
+  );
+  assert.match(
+    mailDetailSource,
+    /title="Mark as unread"[\s\S]*?onMarkUnread\?\.\(message\)/,
+    "offers a mark-as-unread action in message detail"
+  );
+  assert.match(
+    mailInboxSource,
+    /handleDetailMarkUnread[\s\S]*?collectMessageMailIds\(message\)[\s\S]*?mailApi\.setRead\(mailIds, false\)[\s\S]*?markMessageUnread/,
+    "marks the full open conversation unread and updates local state"
+  );
+  assert.match(
+    mailDetailSource,
+    /\.gmail_quote[\s\S]*?blockquote\[type=[^\]]*cite[^\]]*\][\s\S]*?#divNeteaseMailCard[\s\S]*?#foxmail_quote[\s\S]*?#divRplyFwdMsg[\s\S]*?#yahoo_quoted/,
+    "recognizes quoted messages from the providers supported by the previous mail detail"
+  );
+  assert.match(
+    mailDetailSource,
+    /topLevelNodes\[0\][\s\S]*?mail-quote is-collapsed[\s\S]*?Replied message/,
+    "collapses only the first top-level quoted message behind a reply toggle"
+  );
+  assert.match(
+    mailInboxSource,
+    /isMessageUnread\(message\)[\s\S]*?collectMessageMailIds\(detail\)[\s\S]*?mailApi\.setRead\(mailIds, true\)/,
+    "marks the complete conversation as read when its detail is opened"
+  );
+  assert.match(
+    mailInboxSource,
+    /m\.id === message\.id[\s\S]*?markMessageRead\(m\)/,
+    "clears both the message and conversation unread state in the list"
+  );
+  assert.match(
+    mailPagesSource,
+    /params\.set\("todo", "1"\)/,
+    "uses todo semantics in newly generated filter URLs"
+  );
+  assert.match(
+    mailPagesSource,
+    /searchParams\.get\("starred"\) === "1"/,
+    "keeps legacy starred filter URLs working"
   );
 
   const { getMailSenderCandidates, resolveMailSender } =
@@ -26,6 +102,15 @@ try {
   const { buildComposeInitial, canReplyAll } = await server.ssrLoadModule(
     "/registry/nocobase-mail/components/use-mail-compose.tsx"
   );
+  const {
+    collectMessageMailIds,
+    isMessageUnread,
+    markMessageRead,
+    markMessageUnread,
+  } =
+    await server.ssrLoadModule(
+      "/registry/nocobase-mail/components/mail-inbox.tsx"
+    );
   const { mailApi } = await server.ssrLoadModule(
     "/registry/nocobase-mail/components/mail-api.ts"
   );
@@ -48,6 +133,9 @@ try {
     replaceInlineImageSources,
   } = await server.ssrLoadModule(
     "/registry/nocobase-mail/components/mail-inline-images.ts"
+  );
+  const { serializeReplyQuote, splitReplyQuote } = await server.ssrLoadModule(
+    "/registry/nocobase-mail/components/mail-reply-quote.ts"
   );
 
   assert.equal(currentToken("alice@example.com, bo"), "bo");
@@ -242,6 +330,48 @@ try {
     bodyHtml: "<p>Hello</p>",
     attachments: [],
   };
+  assert.equal(
+    isMessageUnread({
+      ...sourceMessage,
+      isRead: true,
+      relatedMessagesIsRead: false,
+    }),
+    true,
+    "treats a conversation with unread related messages as unread"
+  );
+  assert.deepEqual(
+    collectMessageMailIds({
+      ...sourceMessage,
+      relatedMessageIds: ["message-2"],
+      children: [
+        { ...sourceMessage, id: 2, mailId: "message-2" },
+        { ...sourceMessage, id: 3, mailId: "message-3" },
+      ],
+    }),
+    ["message-1", "message-2", "message-3"],
+    "marks every provider message in the opened conversation"
+  );
+  assert.deepEqual(
+    markMessageRead({
+      ...sourceMessage,
+      relatedMessagesIsRead: false,
+    }),
+    {
+      ...sourceMessage,
+      isRead: true,
+      relatedMessagesIsRead: true,
+    },
+    "clears the aggregate unread flag together with the current message"
+  );
+  assert.deepEqual(
+    markMessageUnread(sourceMessage),
+    {
+      ...sourceMessage,
+      isRead: false,
+      relatedMessagesIsRead: false,
+    },
+    "sets both the message and conversation unread state"
+  );
   const reply = buildComposeInitial(sourceMessage, "replyAll", [
     "team@example.com",
     "sales@example.com",
@@ -254,6 +384,27 @@ try {
   assert.equal(reply.reference?.from, "customer@example.com");
   assert.equal(reply.reference?.subject, "Question");
   assert.equal(reply.reference?.preview, "Hello");
+  assert.equal(
+    reply.body,
+    "",
+    "keeps the editable reply body separate from the quoted message"
+  );
+  assert.equal(reply.replyBody, "<p>Hello</p>");
+  const serializedReply = serializeReplyQuote(reply.body, reply.replyBody);
+  assert.match(
+    serializedReply,
+    /<div class="nocobase-quote nb-mail-quote" data-role="reply-quote">/,
+    "keeps the stable reply-quote marker while preserving the Portal style hook"
+  );
+  assert.match(
+    serializedReply,
+    /<blockquote type="cite"[^>]*><p>Hello<\/p><\/blockquote>/,
+    "uses semantic cited content for mail-client compatible replies"
+  );
+  assert.deepEqual(splitReplyQuote(`<p>Thanks</p>${serializedReply}`), {
+    body: "<p>Thanks</p>",
+    replyBody: "<p>Hello</p>",
+  });
   assert.equal(
     canReplyAll(sourceMessage, ["team@example.com", "sales@example.com"]),
     true,

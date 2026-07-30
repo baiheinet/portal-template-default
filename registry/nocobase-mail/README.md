@@ -11,7 +11,7 @@ After installation, import the components from `@/extensions/nocobase-mail`.
   saving and recovery, and real attachment uploads.
 - `MailComposeAttachments` uploads files through `mail:messageAttachmentUpload`
   with retry, removal, and the backend's 25 MB limit.
-- `MailFilters` folder, read-state, label, and starred-message filters.
+- `MailFilters` folder, read-state, label, and todo-message filters.
 - `MailUnreadProvider` / `MailUnreadIndicator` / `MailUnreadIcon` reusable unread-count
   display with interval, window-focus, and visibility refresh.
 - `MailDetail` threaded message detail with per-message Reply, conditional Reply all,

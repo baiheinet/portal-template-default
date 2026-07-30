@@ -67,6 +67,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { serializeReplyQuote, splitReplyQuote } from "./mail-reply-quote";
 
 export interface ComposeInitialValues {
   from?: string;
@@ -76,6 +77,7 @@ export interface ComposeInitialValues {
   cc?: string;
   subject?: string;
   body?: string;
+  replyBody?: string;
   replyTo?: string;
   isDraft?: boolean;
   id?: number;
@@ -88,6 +90,7 @@ export interface ComposeReference {
   date?: string;
   subject?: string;
   preview?: string;
+  html?: string;
 }
 
 export type ComposeMode = "new" | "reply" | "replyAll" | "forward" | "draft";
@@ -108,38 +111,69 @@ const uniqueRecipients = (value: string) => {
   });
 };
 
-function MailComposeReference({ reference }: { reference: ComposeReference }) {
+function MailComposeReference({
+  reference,
+  contentHtml,
+  onRemove,
+}: {
+  reference: ComposeReference;
+  contentHtml?: string;
+  onRemove?: () => void;
+}) {
   const [expanded, setExpanded] = useState(true);
 
   return (
     <div className="overflow-hidden rounded-lg border bg-muted/25">
-      <button
-        type="button"
-        className="flex w-full items-center gap-2 px-3 py-2 text-left"
-        aria-expanded={expanded}
-        onClick={() => setExpanded((value) => !value)}
-      >
-        <Quote className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-xs font-medium">
-            Quoted message from {reference.from}
+      <div className="flex items-center">
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          <Quote className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-medium">
+              Quoted message from {reference.from}
+            </span>
+            <span className="block truncate text-[11px] text-muted-foreground">
+              {[reference.subject, reference.date].filter(Boolean).join(" · ")}
+            </span>
           </span>
-          <span className="block truncate text-[11px] text-muted-foreground">
-            {[reference.subject, reference.date].filter(Boolean).join(" · ")}
-          </span>
-        </span>
-        <ChevronDown
-          className={cn(
-            "size-3.5 shrink-0 text-muted-foreground transition-transform",
-            expanded && "rotate-180"
-          )}
-        />
-      </button>
-      {expanded && reference.preview && (
-        <div className="max-h-28 overflow-y-auto border-t px-3 py-2 text-xs leading-5 whitespace-pre-wrap text-muted-foreground">
-          {reference.preview}
-        </div>
-      )}
+          <ChevronDown
+            className={cn(
+              "size-3.5 shrink-0 text-muted-foreground transition-transform",
+              expanded && "rotate-180"
+            )}
+          />
+        </button>
+        {onRemove && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className="mr-2 shrink-0 text-muted-foreground hover:text-destructive"
+            title="Remove quoted message"
+            aria-label="Remove quoted message"
+            onClick={onRemove}
+          >
+            <Trash2 />
+          </Button>
+        )}
+      </div>
+      {expanded &&
+        (contentHtml ? (
+          <iframe
+            title="Quoted message content"
+            sandbox=""
+            srcDoc={contentHtml}
+            className="h-64 w-full border-0 border-t bg-white"
+          />
+        ) : reference.preview ? (
+          <div className="max-h-64 overflow-y-auto border-t px-4 py-3 text-sm leading-6 whitespace-pre-wrap text-muted-foreground">
+            {reference.preview}
+          </div>
+        ) : null)}
     </div>
   );
 }
@@ -200,6 +234,7 @@ export function MailComposeForm({
   const [showCc, setShowCc] = useState(Boolean(initial?.cc));
   const [subject, setSubject] = useState(initial?.subject ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
+  const [replyBody, setReplyBody] = useState(initial?.replyBody);
   const [sendAction, setSendAction] = useState<
     "send" | "schedule" | "bulk" | null
   >(null);
@@ -260,6 +295,7 @@ export function MailComposeForm({
     setShowCc(Boolean(initial?.cc));
     setSubject(initial?.subject ?? "");
     setBody(initial?.body ?? "");
+    setReplyBody(initial?.replyBody);
     setDraftId(initial?.id);
     setAttachments(initial?.attachments ?? []);
     setEditRevision(0);
@@ -353,13 +389,13 @@ export function MailComposeForm({
       to: recipients,
       cc: parseList(cc),
       subject,
-      body,
+      body: serializeReplyQuote(body, replyBody),
       attachments,
       replyTo: initial?.replyTo,
       isDraft: Boolean(draftId || initial?.isDraft),
       ...overrides,
     }),
-    [draftId, initial, selectedSender, recipients, cc, subject, body, attachments]
+    [draftId, initial, selectedSender, recipients, cc, subject, body, replyBody, attachments]
   );
 
   const draftSnapshot = useCallback((payload: MailSendPayload) => {
@@ -620,7 +656,11 @@ export function MailComposeForm({
     setCc(recoverableDraft.cc || "");
     setShowCc(Boolean(recoverableDraft.cc));
     setSubject(recoverableDraft.subject || "");
-    setBody(recoverableDraft.bodyHtml || recoverableDraft.bodyText || "");
+    const recoveredContent = splitReplyQuote(
+      recoverableDraft.bodyHtml || recoverableDraft.bodyText || ""
+    );
+    setBody(recoveredContent.body);
+    setReplyBody(recoveredContent.replyBody);
     setAttachments(recoveredAttachments);
     setDraftId(recoverableDraft.id);
     setRecoverableDraft(undefined);
@@ -708,10 +748,6 @@ export function MailComposeForm({
         />
       </div>
 
-      {initial?.reference && mode !== "draft" && (
-        <MailComposeReference reference={initial.reference} />
-      )}
-
       <MailRichEditor
         value={body}
         onChange={(value) => {
@@ -790,17 +826,36 @@ export function MailComposeForm({
         }
       />
 
-      <div className="flex items-center justify-between gap-2">
-        <MailComposeAttachments
-          key={draftId ?? "new-draft"}
-          value={attachments}
-          onChange={setAttachments}
-          onBusyChange={setUploadingAttachments}
-          onDirty={markEdited}
-          disabled={sendAction !== null || savingDraft}
+      {initial?.reference &&
+        mode !== "draft" &&
+        (mode === "forward" || Boolean(replyBody)) && (
+        <MailComposeReference
+          reference={initial.reference}
+          contentHtml={replyBody || initial.reference.html}
+          onRemove={
+            mode === "reply" || mode === "replyAll"
+              ? () => {
+                  setReplyBody(undefined);
+                  markEdited();
+                }
+              : undefined
+          }
         />
+      )}
 
-        <div className="flex items-center gap-2">
+      <div className="flex items-end justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <MailComposeAttachments
+            key={draftId ?? "new-draft"}
+            value={attachments}
+            onChange={setAttachments}
+            onBusyChange={setUploadingAttachments}
+            onDirty={markEdited}
+            disabled={sendAction !== null || savingDraft}
+          />
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2">
           {draftId && (
             <Button
               variant="ghost"

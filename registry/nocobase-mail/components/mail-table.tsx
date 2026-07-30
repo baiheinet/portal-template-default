@@ -416,7 +416,7 @@ export function MailTable({
                             cell.column.id !== "select" &&
                             cell.column.id !== "isRead" &&
                             cell.column.id !== "date"
-                            ? "font-semibold"
+                            ? "font-bold"
                             : undefined
                         )}
                       >

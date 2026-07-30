@@ -52,6 +52,8 @@ export { MailNoteEditor } from "./mail-note-editor";
 export { MailAttachmentList } from "./mail-attachment-list";
 export { createDebouncedDraftSaver } from "./mail-draft-autosave";
 export type { DebouncedDraftSaver } from "./mail-draft-autosave";
+export { serializeReplyQuote, splitReplyQuote } from "./mail-reply-quote";
+export type { MailReplyContent } from "./mail-reply-quote";
 export {
   collectInlineContentIds,
   filterInlineAttachments,

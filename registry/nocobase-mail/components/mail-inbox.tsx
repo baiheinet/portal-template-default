@@ -32,6 +32,47 @@ import {
 import { cn } from "@/lib/utils";
 import { useMailUnread } from "./mail-unread";
 
+type MailReadState = Pick<
+  MailMessage,
+  | "mailId"
+  | "isRead"
+  | "relatedMessageIds"
+  | "relatedMessagesIsRead"
+  | "children"
+  | "childrenMessages"
+>;
+
+export function isMessageUnread(
+  message: Pick<MailMessage, "isRead" | "relatedMessagesIsRead">
+) {
+  return !message.isRead || message.relatedMessagesIsRead === false;
+}
+
+export function collectMessageMailIds(message: MailReadState) {
+  const conversation = [
+    message,
+    ...(message.children ?? []),
+    ...(message.childrenMessages ?? []),
+  ];
+
+  return Array.from(
+    new Set(
+      conversation.flatMap((item) => [
+        item.mailId,
+        ...(item.relatedMessageIds ?? []),
+      ])
+    )
+  ).filter((mailId): mailId is string => Boolean(mailId));
+}
+
+export function markMessageRead(message: MailMessage): MailMessage {
+  return { ...message, isRead: true, relatedMessagesIsRead: true };
+}
+
+export function markMessageUnread(message: MailMessage): MailMessage {
+  return { ...message, isRead: false, relatedMessagesIsRead: false };
+}
+
 export interface MailInboxProps {
   scope?: MailScope;
   boxType?: MailBoxType;
@@ -146,11 +187,27 @@ export function MailInbox({
         const detail = await mailApi.getMessage(message.id);
         if (sequence !== openMessageSequence.current) return;
         setActiveMessage(detail);
-        if (!message.isRead && message.mailId) {
-          mailApi.setRead([message.mailId], true).then(refreshUnread).catch(() => undefined);
-          setMessages((prev) =>
-            prev.map((m) => (m.id === message.id ? { ...m, isRead: true } : m))
-          );
+        if (isMessageUnread(message)) {
+          const mailIds = collectMessageMailIds(detail);
+          if (mailIds.length) {
+            try {
+              await mailApi.setRead(mailIds, true);
+              if (sequence !== openMessageSequence.current) return;
+              setActiveMessage(markMessageRead(detail));
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === message.id ? markMessageRead(m) : m
+                )
+              );
+              refreshUnread();
+            } catch (error) {
+              toast.error(
+                error instanceof Error
+                  ? error.message
+                  : "Failed to mark message as read"
+              );
+            }
+          }
         }
       } catch (error) {
         if (sequence !== openMessageSequence.current) return;
@@ -195,6 +252,33 @@ export function MailInbox({
       }
     },
     [messages, selectedIds, setMessages, refreshUnread]
+  );
+
+  const handleDetailMarkUnread = useCallback(
+    async (message: MailMessage) => {
+      const mailIds = collectMessageMailIds(message);
+      if (!mailIds.length) return;
+      try {
+        await mailApi.setRead(mailIds, false);
+        setActiveMessage((prev) =>
+          prev?.id === message.id ? markMessageUnread(prev) : prev
+        );
+        setMessages((prev) =>
+          prev.map((item) =>
+            item.id === message.id ? markMessageUnread(item) : item
+          )
+        );
+        toast.success("Marked as unread");
+        refreshUnread();
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to mark message as unread"
+        );
+      }
+    },
+    [setMessages, refreshUnread]
   );
 
   const handleBulkTrash = useCallback(async () => {
@@ -331,7 +415,7 @@ export function MailInbox({
           prev.map((m) => (m.id === message.id ? { ...m, isTodo } : m))
         );
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to update star");
+        toast.error(error instanceof Error ? error.message : "Failed to update todo");
       }
     },
     [setMessages]
@@ -419,6 +503,7 @@ export function MailInbox({
               onReplyAll={(m) => openReply(m, "replyAll")}
               onForward={(m) => openReply(m, "forward")}
               onToggleTodo={handleToggleTodo}
+              onMarkUnread={handleDetailMarkUnread}
               onTrash={handleDetailTrash}
               onRestore={handleDetailRestore}
               onDeleteForever={(message) => setPermanentDeleteIds([message.id])}
