@@ -32,8 +32,8 @@ The mail API client (`mailApi`) uses the Starter's built-in `API_URL`, `getNocoB
 ## Send modes
 
 The standard compose form enables scheduled sending by default. Bulk sending is
-kept on the dedicated `/admin/mail/bulk` page, where the bulk form and delivery
-jobs are visible together. Reusable compose forms can still opt into bulk mode:
+kept on the dedicated `/dev/mail/bulk` showcase page, where the bulk form and
+delivery jobs are visible together. Reusable compose forms can still opt into bulk mode:
 
 - **Schedule send** calls `mail:messageSend` with an ISO `scheduleSendAt` value.
 - **Bulk send** calls `mailMassMessages:send`, creates one separate message per

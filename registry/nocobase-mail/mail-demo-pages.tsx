@@ -68,34 +68,34 @@ const scenarios = [
     title: "My mailbox",
     description:
       "A personal mailbox with folders, filters, and message actions.",
-    path: "/admin/mail-demos/workspace",
+    path: "workspace",
     icon: PanelsLeftRight,
   },
   {
     title: "Mailbox views",
     description:
       "Switch between the current user's inbox and all connected mailboxes.",
-    path: "/admin/mail-demos/personal",
+    path: "personal",
     icon: Users,
   },
   {
     title: "Unread indicator",
     description:
       "Show a live unread count in navigation, buttons, or mailbox summaries.",
-    path: "/admin/mail-demos/unread",
+    path: "unread",
     icon: MessagesSquare,
   },
   {
     title: "Compose page",
     description: "A standalone compose route with query-string prefilling.",
-    path: "/admin/mail/compose",
+    path: "compose",
     icon: PenLine,
   },
   {
     title: "Correspondence per user",
     description:
       "Select a user and inspect all messages exchanged with that address.",
-    path: "/admin/mail-demos/filtered",
+    path: "filtered",
     icon: ListFilter,
   },
 ];

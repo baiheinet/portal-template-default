@@ -107,10 +107,9 @@ try {
     isMessageUnread,
     markMessageRead,
     markMessageUnread,
-  } =
-    await server.ssrLoadModule(
-      "/registry/nocobase-mail/components/mail-inbox.tsx"
-    );
+  } = await server.ssrLoadModule(
+    "/registry/nocobase-mail/components/mail-inbox.tsx"
+  );
   const { mailApi } = await server.ssrLoadModule(
     "/registry/nocobase-mail/components/mail-api.ts"
   );
@@ -199,8 +198,17 @@ try {
   assert.deepEqual(
     filterInlineAttachments(
       [
-        { attachmentId: "inline", filename: "hero.png", mimeType: "image/png", contentId: "<Hero.Image@Mail>" },
-        { attachmentId: "file", filename: "report.pdf", mimeType: "application/pdf" },
+        {
+          attachmentId: "inline",
+          filename: "hero.png",
+          mimeType: "image/png",
+          contentId: "<Hero.Image@Mail>",
+        },
+        {
+          attachmentId: "file",
+          filename: "report.pdf",
+          mimeType: "application/pdf",
+        },
       ],
       inlineHtml
     ).map((attachment) => attachment.attachmentId),
@@ -208,7 +216,14 @@ try {
     "inline images are not duplicated in the downloadable attachment list"
   );
 
-  const scenarioResources = mailExtension.resources.filter((resource) =>
+  assert.equal(
+    mailExtension.resources,
+    undefined,
+    "does not add Mail examples to the application navigation"
+  );
+  assert.ok(mailExtension.dev?.routes, "provides Mail routes under /dev");
+  const mailResources = mailExtension.dev?.resources ?? [];
+  const scenarioResources = mailResources.filter((resource) =>
     resource.name.startsWith("mail-scenario-")
   );
   assert.equal(
@@ -221,42 +236,38 @@ try {
     "nests every scenario directly under Mail"
   );
   assert.equal(
-    mailExtension.resources.some(
-      (resource) => resource.name === "mail-compose"
-    ),
+    mailResources.some((resource) => resource.name === "mail-compose"),
     false,
     "removes the old standalone Compose menu entry"
   );
   assert.equal(
-    mailExtension.resources.some(
-      (resource) => resource.name === "mail-scenarios"
-    ),
+    mailResources.some((resource) => resource.name === "mail-scenarios"),
     false,
     "removes the intermediate Mail scenarios menu group"
   );
-  const bulkResource = mailExtension.resources.find(
+  const bulkResource = mailResources.find(
     (resource) => resource.name === "mail-bulk"
   );
-  assert.equal(bulkResource?.list, "/admin/mail/bulk");
+  assert.equal(bulkResource?.list, "mail/bulk");
   assert.equal(bulkResource?.meta?.parent, "mail");
   assert.equal(bulkResource?.meta?.label, "Bulk mail");
   assert.equal(
-    mailExtension.resources.at(-1)?.name,
+    mailResources.at(-1)?.name,
     "mail-bulk",
     "keeps Bulk mail as the final item in the Mail menu"
   );
   assert.deepEqual(
     scenarioResources.map((resource) => resource.list),
     [
-      "/admin/mail-demos/workspace",
-      "/admin/mail-demos/personal",
-      "/admin/mail-demos/unread",
-      "/admin/mail/compose",
-      "/admin/mail-demos/filtered",
+      "mail/workspace",
+      "mail/personal",
+      "mail/unread",
+      "mail/compose",
+      "mail/filtered",
     ]
   );
   assert.equal(
-    mailExtension.resources.some(
+    mailResources.some(
       (resource) => resource.name === "mail-scenario-compose-anywhere"
     ),
     false,

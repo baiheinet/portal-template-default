@@ -174,8 +174,8 @@ export function MailComposePage() {
             <MailComposeForm
               initial={initial}
               showCancel
-              onSent={() => navigate("/admin/mail")}
-              onCancel={() => navigate("/admin/mail")}
+              onSent={() => navigate("..")}
+              onCancel={() => navigate("..")}
             />
           </CardContent>
         </Card>
