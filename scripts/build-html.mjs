@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadEnv } from "vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -10,6 +11,17 @@ const indexPath = path.join(distDir, "index.html");
 
 const startMarker = "<!-- nocobase-runtime-config:start -->";
 const endMarker = "<!-- nocobase-runtime-config:end -->";
+
+const loadBuildHtmlEnv = () => {
+  const mode = process.env.MODE || "production";
+  const env = loadEnv(mode, rootDir, "");
+
+  for (const [key, value] of Object.entries(env)) {
+    if (process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+};
 
 const normalizePortalBase = (base) => {
   const normalized = String(base || "/").trim();
@@ -62,6 +74,8 @@ const stripExistingRuntimeConfig = (html) => {
   );
   return html.replace(pattern, "");
 };
+
+loadBuildHtmlEnv();
 
 const portalBase = normalizePortalBase(process.env.NOCOBASE_PORTAL_BASE);
 const apiUrl = String(process.env.NOCOBASE_API_URL || "/api").trim() || "/api";
