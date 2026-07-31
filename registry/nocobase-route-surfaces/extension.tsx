@@ -33,6 +33,31 @@ const DemoPageDrawerDialog = lazy(() =>
     default: module.DemoPageDrawerDialogRoute,
   }))
 );
+const DemoContextualHome = lazy(() =>
+  import("./demo").then((module) => ({
+    default: module.DemoContextualHomeRoute,
+  }))
+);
+const DemoContextualList = lazy(() =>
+  import("./demo").then((module) => ({
+    default: module.DemoContextualListRoute,
+  }))
+);
+const DemoContextualDetail = lazy(() =>
+  import("./demo").then((module) => ({
+    default: module.DemoContextualDetailRoute,
+  }))
+);
+const DemoContextualCreate = lazy(() =>
+  import("./demo").then((module) => ({
+    default: module.DemoContextualCreateRoute,
+  }))
+);
+const DemoContextualEdit = lazy(() =>
+  import("./demo").then((module) => ({
+    default: module.DemoContextualEditRoute,
+  }))
+);
 
 const routeSurfacesExtension: AppExtension = {
   id: "nocobase-route-surfaces",
@@ -109,6 +134,58 @@ const routeSurfacesExtension: AppExtension = {
               element={
                 <LazyRouteSurfaceDemo>
                   <DemoPageDrawerDialog />
+                </LazyRouteSurfaceDemo>
+              }
+            />
+          </Route>
+        </Route>
+        <Route
+          key="route-surfaces-contextual"
+          path="route-surfaces/contextual"
+          element={
+            <LazyRouteSurfaceDemo>
+              <DemoContextualHome />
+            </LazyRouteSurfaceDemo>
+          }
+        >
+          <Route
+            path="list"
+            element={
+              <LazyRouteSurfaceDemo>
+                <DemoContextualList />
+              </LazyRouteSurfaceDemo>
+            }
+          >
+            <Route
+              path="create"
+              element={
+                <LazyRouteSurfaceDemo>
+                  <DemoContextualCreate />
+                </LazyRouteSurfaceDemo>
+              }
+            />
+            <Route
+              path="detail/:id"
+              element={
+                <LazyRouteSurfaceDemo>
+                  <DemoContextualDetail />
+                </LazyRouteSurfaceDemo>
+              }
+            >
+              <Route
+                path="edit"
+                element={
+                  <LazyRouteSurfaceDemo>
+                    <DemoContextualEdit />
+                  </LazyRouteSurfaceDemo>
+                }
+              />
+            </Route>
+            <Route
+              path="edit/:id"
+              element={
+                <LazyRouteSurfaceDemo>
+                  <DemoContextualEdit />
                 </LazyRouteSurfaceDemo>
               }
             />

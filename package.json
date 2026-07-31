@@ -93,6 +93,7 @@
     "test:i18n": "node registry/nocobase-i18n/tests/i18n-regression.mjs",
     "test:file-upload": "node --experimental-strip-types --test tests/file-upload-regression.test.ts",
     "test:mail": "node registry/nocobase-mail/tests/mail-regression.mjs",
+    "test:route-surfaces": "node registry/nocobase-route-surfaces/tests/route-surfaces-regression.mjs",
     "start": "refine start",
     "refine": "refine"
   },
