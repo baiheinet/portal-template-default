@@ -1,6 +1,6 @@
 export const starter = {
   "shell.workspace": "AI application workspace",
-  "shell.settings": "System settings",
+  "shell.settings": "Settings",
   "shell.footer.freedom": "AI builds freely.",
   "shell.footer.reliabilitySuffix": "keeps it reliable.",
   "auth.signOut": "Sign out",

@@ -50,6 +50,16 @@ export const resolveNocoBaseServerUrl = (path = "/") => {
   ).toString();
 };
 
+export const resolveNocoBaseSettingsUrl = () => {
+  const appName = getNocoBaseAppName();
+  const settingsPath =
+    appName === "main"
+      ? "/settings"
+      : `/settings/apps/${encodeURIComponent(appName)}`;
+
+  return resolveNocoBaseServerUrl(settingsPath);
+};
+
 export const resolvePortalUrl = (path = "/") => {
   if (typeof window === "undefined") return path;
   if (/^[a-z][a-z\d+.-]*:/i.test(path)) return path;

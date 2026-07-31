@@ -20,9 +20,11 @@ try {
   const { AuthSession } = await server.ssrLoadModule(
     "/src/lib/nocobase/auth-session.ts"
   );
-  const { resolveNocoBaseAppName, resolvePortalUrl } = await server.ssrLoadModule(
-    "/src/providers/runtime-config.ts"
-  );
+  const {
+    resolveNocoBaseAppName,
+    resolveNocoBaseSettingsUrl,
+    resolvePortalUrl,
+  } = await server.ssrLoadModule("/src/providers/runtime-config.ts");
 
   assert.equal(
     resolveNocoBaseAppName(
@@ -50,12 +52,20 @@ try {
     resolvePortalUrl("/users?tab=active#list"),
     "/x/demo/users?tab=active#list"
   );
+  assert.equal(
+    resolveNocoBaseSettingsUrl(),
+    "http://localhost:14000/settings"
+  );
 
   window.NOCOBASE_API_URL = "/api/__app/crm";
   window.NOCOBASE_PORTAL_BASE = "/x/apps/crm/customer/";
   assert.equal(
     resolvePortalUrl("/users?tab=active#list"),
     "/x/apps/crm/customer/users?tab=active#list"
+  );
+  assert.equal(
+    resolveNocoBaseSettingsUrl(),
+    "http://localhost:14000/settings/apps/crm"
   );
 
   window.NOCOBASE_API_URL = "http://127.0.0.1:13000/api";

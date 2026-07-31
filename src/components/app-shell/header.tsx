@@ -25,7 +25,7 @@ import { LogOutIcon, SettingsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Brand } from "@/components/app-shell/brand";
 import { extensionUserMenuItems } from "@/app/extensions";
-import { resolveNocoBaseServerUrl } from "@/providers/runtime-config";
+import { resolveNocoBaseSettingsUrl } from "@/providers/runtime-config";
 
 const pluginSettingsResource = {
   name: "plugin-settings",
@@ -121,7 +121,7 @@ function MobileHeader() {
 
 function SettingsLink({ className }: { className?: string }) {
   const translate = useTranslate();
-  const label = translate("shell.settings", "System settings");
+  const label = translate("shell.settings", "Settings");
 
   return (
     <CanAccess resourceItem={pluginSettingsResource}>
@@ -131,7 +131,7 @@ function SettingsLink({ className }: { className?: string }) {
             <Button
               render={
                 <a
-                  href={resolveNocoBaseServerUrl("/settings")}
+                  href={resolveNocoBaseSettingsUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
                 />
