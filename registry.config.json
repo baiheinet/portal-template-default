@@ -248,6 +248,8 @@
       "title": "NocoBase AI Chat Components",
       "description": "Reusable NocoBase AI chat window, containers, floating trigger, and employee shortcut.",
       "dependencies": [
+        "@nocobase/portal-sdk@^1.0.0",
+        "@refinedev/core@^5.0.8",
         "echarts@^5.5.0",
         "echarts-for-react@3.0.2",
         "lucide-react@^0.487.0",
@@ -276,7 +278,7 @@
       "source": {
         "root": "registry/nocobase-ai",
         "target": "src/extensions/nocobase-ai",
-        "include": ["components", "assets", "index.ts", "README.md"]
+        "include": ["components", "locales", "assets", "index.ts", "README.md"]
       }
     },
     {
