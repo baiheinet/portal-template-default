@@ -3,6 +3,25 @@
   "homepage": "https://www.nocobase.com",
   "items": [
     {
+      "name": "error-boundary",
+      "type": "registry:lib",
+      "title": "NocoBase Error Boundary",
+      "description": "Reusable root, page, and region error boundaries with copyable redacted diagnostics and recovery actions.",
+      "dependencies": [
+        "@nocobase/portal-sdk@^1.0.0",
+        "lucide-react@^0.487.0",
+        "react-error-boundary@^6.0.0",
+        "react-router@^7.0.2"
+      ],
+      "registryDependencies": ["badge", "button", "card"],
+      "docs": "Uses react-error-boundary for error containment and provides the default NocoBase diagnostic UI. It contributes only a development showcase at /dev/error-boundary, with no production routes, providers, or menu entries.",
+      "source": {
+        "root": "registry/nocobase-error-boundary",
+        "target": "src/extensions/nocobase-error-boundary",
+        "include": ["."]
+      }
+    },
+    {
       "name": "route-surfaces",
       "type": "registry:lib",
       "title": "NocoBase Route Surfaces",
@@ -238,6 +257,7 @@
       ],
       "registryDependencies": [
         "@nocobase/ai-runtime",
+        "@nocobase/error-boundary",
         "badge",
         "button",
         "collapsible",

@@ -105,6 +105,7 @@ authenticator UI.
 ```bash
 pnpm --dir sdk test
 node tests/auth-session-regression.mjs
+node tests/error-boundary-regression.mjs
 node registry/nocobase-acl/tests/acl-regression.mjs
 node registry/nocobase-i18n/tests/i18n-regression.mjs
 node --experimental-strip-types --test tests/file-upload-regression.test.ts
