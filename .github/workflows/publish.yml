@@ -311,8 +311,6 @@ jobs:
 
       - name: Publish SDK
         if: steps.release.outputs.publish_sdk == 'true'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish "$RUNNER_TEMP/portal-sdk-local/"*.tgz --access public --tag "${{ inputs.tag }}"
 
       - name: Publish template
