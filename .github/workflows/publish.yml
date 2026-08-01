@@ -311,7 +311,8 @@ jobs:
 
       - name: Publish SDK
         if: steps.release.outputs.publish_sdk == 'true'
-        run: pnpm --dir sdk publish --no-git-checks --access public --tag "${{ inputs.tag }}"
+        working-directory: sdk
+        run: pnpm publish --no-git-checks --access public --tag "${{ inputs.tag }}"
 
       - name: Publish template
         if: steps.release.outputs.publish_template == 'true'
