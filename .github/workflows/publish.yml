@@ -311,12 +311,13 @@ jobs:
 
       - name: Publish SDK
         if: steps.release.outputs.publish_sdk == 'true'
-        working-directory: sdk
-        run: pnpm publish --no-git-checks --access public --tag "${{ inputs.tag }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish "$RUNNER_TEMP/portal-sdk-local/"*.tgz --access public --tag "${{ inputs.tag }}"
 
       - name: Publish template
         if: steps.release.outputs.publish_template == 'true'
-        run: pnpm publish --no-git-checks --access public --tag "${{ inputs.tag }}"
+        run: npm publish "$RUNNER_TEMP/portal-template-local/"*.tgz --access public --tag "${{ inputs.tag }}"
 
       - name: Commit and tag release
         env:
