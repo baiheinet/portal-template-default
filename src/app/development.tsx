@@ -9,7 +9,6 @@ import type { ReactElement } from "react";
 import { Navigate, Outlet, Route, useLocation } from "react-router";
 
 import { Header } from "@/components/app-shell/header";
-import { LoadingState } from "@/components/app-shell/loading-state";
 import { PageErrorBoundary } from "@/components/app-shell/page-error-boundary";
 import { SidebarNavigation } from "@/components/app-shell/sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -136,7 +135,6 @@ export function createDevelopmentRoute(
     ],
     {
       AccessGuard: RouteAccessGuard,
-      lazyFallback: <LoadingState className="min-h-80" />,
     }
   );
 

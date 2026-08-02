@@ -120,7 +120,9 @@ node registry/nocobase-route-surfaces/tests/route-surfaces-regression.mjs
 
 Registry source checks are maintainer commands for this source repository; the
 published template contains materialized extensions instead of `registry/`.
-SDK breaking-change releases and project upgrade steps are documented in the
+Default Template source upgrades are documented in the
+[template migration guide](https://github.com/nocobase/portal-template-default/blob/main/MIGRATION.md).
+SDK API and compatibility changes are documented separately in the
 [Portal SDK migration guide](https://github.com/nocobase/portal-template-default/blob/main/sdk/MIGRATION.md).
 
 ## Learn more

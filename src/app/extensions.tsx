@@ -38,7 +38,6 @@ export const configuredRouteElements = renderAppRoutes(
   extensionContributions.routeDefinitions,
   {
     AccessGuard: RouteAccessGuard,
-    lazyFallback: <LoadingState className="min-h-80" />,
   }
 );
 
