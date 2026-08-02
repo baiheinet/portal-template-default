@@ -4,6 +4,11 @@
   "description": "Stable runtime and extension APIs for NocoBase Portal applications.",
   "type": "module",
   "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nocobase/portal-template-default.git",
+    "directory": "sdk"
+  },
   "files": [
     "dist",
     "scripts",
