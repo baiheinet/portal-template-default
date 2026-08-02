@@ -8,11 +8,12 @@ import semver from "semver";
 
 import { portalSdkCompatibilityPlugin } from "../dist/vite/index.js";
 
-test("the initial SDK range includes the current template and excludes the next major", () => {
-  const range = ">=2.0.0 <3.0.0";
-  assert.equal(semver.satisfies("2.0.0", range), true);
-  assert.equal(semver.satisfies("2.9.0", range), true);
-  assert.equal(semver.satisfies("3.0.0", range), false);
+test("the SDK 2 range includes Template 3 and excludes adjacent generations", () => {
+  const range = ">=3.0.0 <4.0.0";
+  assert.equal(semver.satisfies("2.9.0", range), false);
+  assert.equal(semver.satisfies("3.0.0", range), true);
+  assert.equal(semver.satisfies("3.9.0", range), true);
+  assert.equal(semver.satisfies("4.0.0", range), false);
 });
 
 test("the Vite plugin reports an invalid base template version", () => {

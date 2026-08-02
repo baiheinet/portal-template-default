@@ -3,9 +3,11 @@ import {
   type ComponentType,
   createElement,
   Fragment,
+  lazy as reactLazy,
   type PropsWithChildren,
   type ReactElement,
   type ReactNode,
+  Suspense,
 } from "react";
 import { Outlet, Route } from "react-router";
 
@@ -18,14 +20,29 @@ export * from "./use-route-surface-state.ts";
 
 type ResourceRouteAction = "create" | "edit" | "show";
 
+export type AppRouteLazyModule = {
+  default: ComponentType;
+};
+
+export type AppRouteLazyLoader = () => Promise<AppRouteLazyModule>;
+
 export type AppRouteResource = Omit<
   ResourceProps,
   "name" | "list" | ResourceRouteAction
 >;
 
-type AppRouteBase = {
+type AppRouteContent =
+  | {
+      element?: ReactNode;
+      lazy?: never;
+    }
+  | {
+      element?: never;
+      lazy: AppRouteLazyLoader;
+    };
+
+type AppRouteBase = AppRouteContent & {
   name: string;
-  element?: ReactNode;
   access?: RouteAccessConstraint;
   outlet?: "auto" | "manual";
 };
@@ -168,27 +185,47 @@ export type AppRouteAccessGuard = ComponentType<
   PropsWithChildren<{ access?: RouteAccessConstraint }>
 >;
 
+export type RenderAppRoutesOptions = {
+  AccessGuard?: AppRouteAccessGuard;
+  lazyFallback?: ReactNode;
+};
+
 export function renderAppRoutes(
   routes: AppRouteDefinition[],
-  options: { AccessGuard?: AppRouteAccessGuard } = {}
+  options: RenderAppRoutesOptions = {}
 ): ReactElement[] {
   return routes.map((route) => {
+    const routeName = route.name;
+    const lazyLoader = route.lazy;
+    const eagerElement = route.element;
+    if (lazyLoader && eagerElement !== undefined) {
+      throw new Error(
+        `Route "${routeName}" cannot declare both element and lazy.`
+      );
+    }
+    const routeElement = lazyLoader
+      ? createElement(
+          Suspense,
+          { fallback: options.lazyFallback ?? null },
+          createElement(reactLazy(lazyLoader))
+        )
+      : eagerElement;
     // resourceAction only binds Refine action paths. This provides the mount
     // point that keeps the resource page mounted; the child element still owns
     // whether it renders a drawer, dialog, or other presentation. A specialized
     // layout can opt out and place or consume the outlet itself.
     const content =
-      route.element &&
+      routeElement &&
       route.resource &&
       route.outlet !== "manual" &&
       hasResourceActionRoute(route.children ?? [])
         ? createElement(
             Fragment,
             null,
-            route.element,
+            routeElement,
             createElement(Outlet)
           )
-        : route.element ?? createElement(Outlet);
+        : routeElement ?? createElement(Outlet);
     if (route.access && !options.AccessGuard) {
       throw new Error(
         `Route "${route.name}" declares access constraints without an AccessGuard.`

@@ -107,5 +107,50 @@ merge template source or rewrite customized application code.
 
 ## Current migrations
 
-There are no published major-version migrations yet. SDK 1.x is the initial
-public API generation for Default Portal Template 2.x.
+### Portal SDK 2.0 / Default Template 3.0
+
+This coordinated generation introduces one application-route contract owned by
+the Portal runtime. It deliberately removes the temporary compatibility forms
+from SDK 1.x.
+
+Removed APIs:
+
+- `AppExtension.appRoutes`;
+- `AppExtension.routes` and `AppExtension.dev.routes` as raw React elements;
+- Registry-owned `React.lazy`, `Suspense`, and `<Route>` wrappers used only to
+  contribute application or development pages.
+
+Replace extension routes with synchronous definitions:
+
+```tsx
+const extension: AppExtension = {
+  id: "customers",
+  routes: defineAppRoutes([
+    {
+      name: "customers",
+      path: "/customers",
+      resource: { meta: { label: "Customers" } },
+      lazy: () => import("./pages/customers"),
+    },
+  ]),
+  dev: {
+    routes: defineAppRoutes([
+      {
+        name: "development.customers",
+        path: "customers",
+        lazy: () => import("./demo"),
+      },
+    ]),
+  },
+};
+```
+
+Each lazy module must default-export a component. Use a `then` mapping when the
+page is a named export. Keep resource/action ACL boundaries in the loaded page
+module; use route `access.roles` only for centralized role constraints.
+
+Upgrade derived Portals by merging Default Template 3.0 source before changing
+`nocobase.defaultTemplateVersion` to `3.0.0` and the Portal SDK dependency to
+`^2.0.0`. Update customized installed Registry extensions to the route contract
+above, then run `pnpm sdk:check`, the production build, and direct-route, nested
+surface, authentication, and ACL verification.

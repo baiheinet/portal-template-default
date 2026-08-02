@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import { evaluateAccess } from "../dist/acl/index.js";
 import {
@@ -7,6 +8,7 @@ import {
   buildRouteResources,
   createRouteSurfaceNavigationState,
   defineAppRoutes,
+  renderAppRoutes,
   resolveRouteSurfaceCloseTo,
 } from "../dist/routing/index.js";
 import {
@@ -74,4 +76,49 @@ test("published i18n and System Settings entry points are executable", async () 
 
   assert.equal(translate("greeting", { ns: "test" }), "Hello");
   assert.equal(typeof loadSystemSettings, "function");
+});
+
+test("application routes defer lazy page modules until they render", () => {
+  let loadCount = 0;
+  const lazyRoute = async () => {
+    loadCount += 1;
+    return { default: () => null };
+  };
+  const [routeElement] = renderAppRoutes(
+    defineAppRoutes([
+      {
+        name: "reports",
+        path: "/reports",
+        lazy: lazyRoute,
+        access: { roles: ["admin"] },
+        resource: { meta: { label: "Reports" } },
+      },
+    ]),
+    {
+      AccessGuard: () => "Denied",
+      lazyFallback: "Loading reports",
+    }
+  );
+
+  assert.equal(renderToStaticMarkup(routeElement.props.element), "Denied");
+  assert.equal(loadCount, 0);
+  assert.equal(
+    routeElement.props.element.props.children.props.fallback,
+    "Loading reports"
+  );
+});
+
+test("application routes reject ambiguous eager and lazy content", () => {
+  assert.throws(
+    () =>
+      renderAppRoutes([
+        {
+          name: "invalid",
+          path: "/invalid",
+          element: "eager",
+          lazy: async () => ({ default: () => null }),
+        },
+      ]),
+    /cannot declare both element and lazy/
+  );
 });

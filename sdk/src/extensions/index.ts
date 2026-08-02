@@ -1,5 +1,5 @@
 import type { ResourceProps } from "@refinedev/core";
-import type { ComponentType, PropsWithChildren, ReactElement } from "react";
+import type { ComponentType, PropsWithChildren } from "react";
 import type { AuthenticatorAdapter } from "../auth/index.ts";
 import type { AppRouteDefinition } from "../routing/index.ts";
 
@@ -7,11 +7,10 @@ export type AppExtension = {
   id: string;
   priority?: number;
   resources?: ResourceProps[];
-  routes?: ReactElement;
-  appRoutes?: AppRouteDefinition[];
+  routes?: AppRouteDefinition[];
   dev?: {
     resources?: ResourceProps[];
-    routes?: ReactElement;
+    routes?: AppRouteDefinition[];
   };
   Provider?: ComponentType<PropsWithChildren>;
   AuthRuntimeProvider?: ComponentType<PropsWithChildren>;
@@ -43,12 +42,9 @@ export const collectAppExtensionContributions = ({
     extensions: sortedExtensions,
     routeDefinitions: [
       ...appRoutes,
-      ...routeExtensions.flatMap((extension) => extension.appRoutes ?? []),
+      ...routeExtensions.flatMap((extension) => extension.routes ?? []),
     ],
     resources: routeExtensions.flatMap((extension) => extension.resources ?? []),
-    routeElements: routeExtensions
-      .map((extension) => extension.routes)
-      .filter((routes): routes is ReactElement => Boolean(routes)),
     userMenuItems: sortedExtensions
       .filter((extension) => extension.UserMenuItems)
       .map((extension) => ({

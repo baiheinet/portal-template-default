@@ -19,6 +19,31 @@ Use documented package exports only. Imports from `src/` are not public API.
 - `@nocobase/portal-sdk/system-settings` — cached System Settings access, context, and hooks.
 - `@nocobase/portal-sdk/vite` — build compatibility and raw Portal HTML plugins.
 
+## Lazy application routes
+
+`defineAppRoutes` keeps route, Refine resource, navigation, and role metadata in
+one synchronous definition while allowing the rendered page to load on demand:
+
+```tsx
+export const appRoutes = defineAppRoutes([
+  {
+    name: "customers",
+    path: "/customers",
+    resource: { meta: { label: "Customers" } },
+    lazy: () => import("./pages/customers"),
+  },
+]);
+```
+
+The imported module must default-export a component. `renderAppRoutes` applies
+the host-provided loading fallback and existing access guard without loading
+the page module for unvisited routes or routes denied by that guard. A route may
+declare either `element` or `lazy`, not both.
+
+`AppExtension.routes` and `AppExtension.dev.routes` use this same definition
+format. Registry extensions declare route metadata and lazy page modules only;
+the application and development hosts own route rendering and loading UI.
+
 ## Workspace development
 
 The workspace manifest resolves public SDK entry points directly from `src/`,
