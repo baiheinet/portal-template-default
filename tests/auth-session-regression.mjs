@@ -17,11 +17,12 @@ const createStorage = () => {
 };
 
 try {
-  const { AuthSession } = await server.ssrLoadModule(
+  const { AuthSession, NocoBaseClient } = await server.ssrLoadModule(
     "@nocobase/portal-sdk/client"
   );
   const {
     resolveNocoBaseAppName,
+    resolveNocoBasePortalName,
     resolveNocoBaseSettingsUrl,
     resolvePortalUrl,
   } = await server.ssrLoadModule("@nocobase/portal-sdk/runtime");
@@ -38,6 +39,12 @@ try {
     "analytics"
   );
   assert.equal(resolveNocoBaseAppName("/x/customer/", "/api"), "main");
+  assert.equal(resolveNocoBasePortalName("/x/hub/"), "hub");
+  assert.equal(
+    resolveNocoBasePortalName("/nocobase/x/apps/demo6/hub/"),
+    "hub"
+  );
+  assert.equal(resolveNocoBasePortalName("/"), undefined);
 
   const originalWindow = globalThis.window;
   Object.defineProperty(globalThis, "window", {
@@ -56,6 +63,7 @@ try {
     resolveNocoBaseSettingsUrl(),
     "http://localhost:14000/settings"
   );
+  assert.equal(new NocoBaseClient("/api").getHeaders()["X-Portal"], "demo");
 
   window.NOCOBASE_API_URL = "/api/__app/crm";
   window.NOCOBASE_PORTAL_BASE = "/x/apps/crm/customer/";
@@ -66,6 +74,10 @@ try {
   assert.equal(
     resolveNocoBaseSettingsUrl(),
     "http://localhost:14000/settings/apps/crm"
+  );
+  assert.equal(
+    new NocoBaseClient("/api").getHeaders()["X-Portal"],
+    "customer"
   );
 
   window.NOCOBASE_API_URL = "http://127.0.0.1:13000/api";

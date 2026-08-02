@@ -18,6 +18,12 @@ export const getPortalBase = () =>
 export const getRuntimeApiUrl = () =>
   getWindowValue("NOCOBASE_API_URL") ?? import.meta.env?.NOCOBASE_API_URL;
 
+export const resolveNocoBasePortalName = (portalBase: string) =>
+  portalBase.match(/\/x\/(?:apps\/[^/]+\/)?([^/?#]+)(?:[/?#]|$)/)?.[1];
+
+export const getNocoBasePortalName = () =>
+  resolveNocoBasePortalName(getPortalBase());
+
 const getAppNameFromPortalBase = (base: string) =>
   base.match(/\/x\/apps\/([^/]+)(?:\/|$)/)?.[1];
 

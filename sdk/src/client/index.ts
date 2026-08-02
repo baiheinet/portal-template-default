@@ -3,6 +3,7 @@ import {
   API_URL,
   NOCOBASE_AUTHENTICATOR,
 } from "../runtime/constants.ts";
+import { getNocoBasePortalName } from "../runtime/config.ts";
 import { authSession } from "./auth-session.ts";
 import { getNocoBaseErrorMessage, NocoBaseHttpError } from "./error.ts";
 
@@ -183,6 +184,7 @@ export class NocoBaseClient {
         ? undefined
         : authenticator ?? this.getStoredAuthenticator();
     const locale = this.getLocale();
+    const portalName = getNocoBasePortalName();
     const formData =
       typeof FormData !== "undefined" && body instanceof FormData;
     const requestHeaders: Record<string, string> = {
@@ -199,6 +201,7 @@ export class NocoBaseClient {
       ...(includeRole && role ? { "X-Role": role } : {}),
       ...(withAclMeta ? { "X-With-ACL-Meta": "true" } : {}),
       ...(locale ? { "X-Locale": locale } : {}),
+      ...(portalName ? { "X-Portal": portalName } : {}),
       "X-Timezone": getClientTimezone(),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
