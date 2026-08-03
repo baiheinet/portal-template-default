@@ -65,7 +65,7 @@ try {
   );
   assert.equal(
     new NocoBaseClient("/api").getHeaders()["X-Portal"],
-    "/x/demo"
+    "demo"
   );
 
   window.NOCOBASE_API_URL = "/api/__app/crm";
@@ -80,7 +80,7 @@ try {
   );
   assert.equal(
     new NocoBaseClient("/api").getHeaders()["X-Portal"],
-    "/x/customer"
+    "customer"
   );
 
   window.NOCOBASE_API_URL = "http://127.0.0.1:13000/api";
