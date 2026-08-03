@@ -201,7 +201,7 @@ export class NocoBaseClient {
       ...(includeRole && role ? { "X-Role": role } : {}),
       ...(withAclMeta ? { "X-With-ACL-Meta": "true" } : {}),
       ...(locale ? { "X-Locale": locale } : {}),
-      ...(portalName ? { "X-Portal": portalName } : {}),
+      ...(portalName ? { "X-Portal": `/x/${portalName}` } : {}),
       "X-Timezone": getClientTimezone(),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,

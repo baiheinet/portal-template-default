@@ -63,7 +63,10 @@ try {
     resolveNocoBaseSettingsUrl(),
     "http://localhost:14000/settings"
   );
-  assert.equal(new NocoBaseClient("/api").getHeaders()["X-Portal"], "demo");
+  assert.equal(
+    new NocoBaseClient("/api").getHeaders()["X-Portal"],
+    "/x/demo"
+  );
 
   window.NOCOBASE_API_URL = "/api/__app/crm";
   window.NOCOBASE_PORTAL_BASE = "/x/apps/crm/customer/";
@@ -77,7 +80,7 @@ try {
   );
   assert.equal(
     new NocoBaseClient("/api").getHeaders()["X-Portal"],
-    "customer"
+    "/x/customer"
   );
 
   window.NOCOBASE_API_URL = "http://127.0.0.1:13000/api";
