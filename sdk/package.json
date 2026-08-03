@@ -1,6 +1,6 @@
 {
   "name": "@nocobase/portal-sdk",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Stable runtime and extension APIs for NocoBase Portal applications.",
   "type": "module",
   "sideEffects": false,
