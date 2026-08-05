@@ -394,20 +394,36 @@ export function NocoBaseRuntimeStatus({
   const primaryButton =
     "inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50";
 
-  if (text.waiting || text.standalone) {
-    const StatusIcon = text.waiting ? LoaderCircle : ServerOff;
+  if (text.waiting) {
+    return (
+      <div className="grid min-h-svh place-items-center bg-background p-6">
+        <div className="relative size-10" role="status">
+          <LoaderCircle
+            className="size-10 animate-spin text-primary"
+            aria-hidden="true"
+          />
+          <div className="absolute top-full left-1/2 mt-5 flex w-[min(36rem,calc(100vw-3rem))] -translate-x-1/2 flex-col items-center text-center">
+            <h1 className="text-xl font-semibold text-foreground">
+              {text.title}
+            </h1>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+              {redactPortalErrorText(text.description)}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (text.standalone) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background p-6">
         <div
           className="flex max-w-xl flex-col items-center text-center"
           role="status"
         >
-          <StatusIcon
-            className={
-              text.waiting
-                ? "size-10 animate-spin text-muted-foreground"
-                : "size-10 text-amber-600 dark:text-amber-400"
-            }
+          <ServerOff
+            className="size-10 text-amber-600 dark:text-amber-400"
             aria-hidden="true"
           />
           <h1 className="mt-5 text-xl font-semibold text-foreground">
