@@ -90,6 +90,65 @@ const commandTitles: Record<string, { defaultMessage: string; key: string }> = {
   },
 };
 
+const lifecycleStatuses: Record<
+  string,
+  {
+    description: { defaultMessage: string; key: string };
+    title: { defaultMessage: string; key: string };
+  }
+> = {
+  APP_PREPARING: {
+    title: {
+      key: "runtime.preparing.title",
+      defaultMessage: "App preparing",
+    },
+    description: {
+      key: "runtime.preparing.description",
+      defaultMessage: "The application is preparing. This may take a moment.",
+    },
+  },
+  APP_INITIALIZING: {
+    title: {
+      key: "runtime.initializing.title",
+      defaultMessage: "App initializing",
+    },
+    description: {
+      key: "runtime.initializing.description",
+      defaultMessage: "The application is initializing. This may take a moment.",
+    },
+  },
+  APP_INITIALIZED: {
+    title: {
+      key: "runtime.initialized.title",
+      defaultMessage: "App initialized",
+    },
+    description: {
+      key: "runtime.initialized.description",
+      defaultMessage: "The application has initialized and is waiting to continue.",
+    },
+  },
+  APP_STARTING: {
+    title: {
+      key: "runtime.starting.title",
+      defaultMessage: "App starting",
+    },
+    description: {
+      key: "runtime.starting.description",
+      defaultMessage: "The application is starting. This may take a moment.",
+    },
+  },
+  COMMAND_END: {
+    title: {
+      key: "runtime.maintenance.title",
+      defaultMessage: "Application maintenance in progress",
+    },
+    description: {
+      key: "runtime.maintenance.description",
+      defaultMessage: "Maintenance is in progress. This may take a moment.",
+    },
+  },
+};
+
 const t = (key: string, defaultMessage: string, locale?: string) =>
   translate(
     key,
@@ -105,11 +164,6 @@ const getRuntimeStatusText = (
   locale?: string
 ): RuntimeStatusText => {
   const code = error.code;
-  const waitingDescription = t(
-    "runtime.waiting.description",
-    "NocoBase is updating the application state. This page will recover automatically.",
-    locale
-  );
 
   if (code === "APP_COMMANDING") {
     const name = error.command?.name;
@@ -123,24 +177,33 @@ const getRuntimeStatusText = (
           "Application maintenance in progress",
           locale
         ),
-      description: waitingDescription,
+      description:
+        error.message ||
+        t(
+          "runtime.maintenance.description",
+          "Maintenance is in progress. This may take a moment.",
+          locale
+        ),
       tone: "info",
       waiting: true,
     };
   }
 
-  if (
-    [
-      "APP_PREPARING",
-      "APP_INITIALIZING",
-      "APP_INITIALIZED",
-      "APP_STARTING",
-      "COMMAND_END",
-    ].includes(code ?? "")
-  ) {
+  const lifecycleStatus = code ? lifecycleStatuses[code] : undefined;
+  if (lifecycleStatus) {
     return {
-      title: t("runtime.starting.title", "Application is starting", locale),
-      description: waitingDescription,
+      title: t(
+        lifecycleStatus.title.key,
+        lifecycleStatus.title.defaultMessage,
+        locale
+      ),
+      description:
+        error.message ||
+        t(
+          lifecycleStatus.description.key,
+          lifecycleStatus.description.defaultMessage,
+          locale
+        ),
       tone: "info",
       waiting: true,
     };

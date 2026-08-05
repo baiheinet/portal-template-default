@@ -10,8 +10,6 @@ const enUS = {
   "actions.reload": "Reload page",
   "actions.backHome": "Back to homepage",
   "actions.signOut": "Sign out",
-  "runtime.waiting.description":
-    "NocoBase is updating the application state. This page will recover automatically.",
   "runtime.command.install": "Installing application",
   "runtime.command.refresh": "Refreshing application",
   "runtime.command.restart": "Restarting application",
@@ -24,7 +22,20 @@ const enUS = {
   "runtime.command.pm.remove": "Removing plugin",
   "runtime.command.pm.update": "Updating plugin",
   "runtime.maintenance.title": "Application maintenance in progress",
-  "runtime.starting.title": "Application is starting",
+  "runtime.maintenance.description":
+    "Maintenance is in progress. This may take a moment.",
+  "runtime.preparing.title": "App preparing",
+  "runtime.preparing.description":
+    "The application is preparing. This may take a moment.",
+  "runtime.initializing.title": "App initializing",
+  "runtime.initializing.description":
+    "The application is initializing. This may take a moment.",
+  "runtime.initialized.title": "App initialized",
+  "runtime.initialized.description":
+    "The application has initialized and is waiting to continue.",
+  "runtime.starting.title": "App starting",
+  "runtime.starting.description":
+    "The application is starting. This may take a moment.",
   "runtime.stopped.title": "Application is stopped",
   "runtime.stopped.description":
     "Start the application on the server, then try again.",
