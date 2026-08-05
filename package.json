@@ -1,10 +1,10 @@
 {
   "name": "@nocobase/portal-template-default",
   "displayName": "Default Template",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "type": "module",
   "nocobase": {
-    "defaultTemplateVersion": "3.0.4"
+    "defaultTemplateVersion": "3.0.5"
   },
   "devDependencies": {
     "@nocobase/portal-sdk": "workspace:^",
