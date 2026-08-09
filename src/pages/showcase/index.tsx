@@ -38,6 +38,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
+import OperationsRoom from "./operations-room";
+
 type DealStatus = "At risk" | "Won" | "Discovery";
 type Role = "Admin" | "Sales" | "Finance";
 type FilterValue = "All" | DealStatus;
@@ -133,6 +135,7 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 export default function ShowcasePage() {
+  const [mode, setMode] = useState<"overview" | "operations">("overview");
   const [filter, setFilter] = useState<FilterValue>("All");
   const [query, setQuery] = useState("");
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -151,6 +154,10 @@ export default function ShowcasePage() {
   const riskCount = visibleDeals.filter((deal) => deal.status === "At risk").length;
   const primaryDeal = visibleDeals[0] ?? deals[0];
 
+  if (mode === "operations") {
+    return <OperationsRoom onBackToOverview={() => setMode("overview")} />;
+  }
+
   return (
     <main className="min-h-screen overflow-hidden bg-[#08111d] text-slate-100 selection:bg-cyan-300 selection:text-slate-950">
       <div className="pointer-events-none fixed inset-0 opacity-30 [background-image:linear-gradient(rgba(148,163,184,.06)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,.06)_1px,transparent_1px)] [background-size:48px_48px]" />
@@ -161,7 +168,7 @@ export default function ShowcasePage() {
             <div className="grid size-9 place-items-center rounded-xl bg-cyan-300 text-slate-950"><Sparkles className="size-4" /></div>
             <div><p className="text-sm font-semibold tracking-tight">NocoBase <span className="text-cyan-300">AI Portal</span></p><p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Capability command center</p></div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400"><span className="size-2 rounded-full bg-emerald-300 shadow-[0_0_12px_#6ee7b7]" /> Runtime online <Badge className="bg-white/10 text-slate-300">Demo data</Badge></div>
+          <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-slate-400"><Button size="sm" variant="outline" className="border-cyan-300/25 bg-cyan-300/10 text-cyan-200 hover:bg-cyan-300/20" onClick={() => setMode("operations")}><Bot /> Operations Room</Button><span className="size-2 rounded-full bg-emerald-300 shadow-[0_0_12px_#6ee7b7]" /> Runtime online <Badge className="bg-white/10 text-slate-300">Demo data</Badge></div>
         </header>
 
         <section className="grid gap-8 py-12 lg:grid-cols-[1.15fr_.85fr] lg:items-end lg:py-20">
