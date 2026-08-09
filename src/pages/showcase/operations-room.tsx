@@ -26,6 +26,11 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import {
+  AIPageContextScope,
+  createAIPageContextReference,
+} from "@/extensions/nocobase-ai/providers/page-context";
+
+import {
   createDemoMissionExecutor,
   type MissionState,
   type MissionStatus,
@@ -115,7 +120,19 @@ export default function OperationsRoom({ onBackToOverview }: { onBackToOverview:
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#08111d] text-slate-100 selection:bg-cyan-300 selection:text-slate-950">
+    <AIPageContextScope
+      context={[
+        {
+          ...createAIPageContextReference({ id: "pipeline-workspace", title: "Pipeline records", kind: "workspace" }),
+          content: { collection: "demo_pipeline", records: 4, filters: ["high-risk", "high-value"] },
+        },
+        {
+          ...createAIPageContextReference({ id: "rescue-mission", title: "High-risk customer rescue mission", kind: "mission" }),
+          content: { knowledgeSources: ["integration-brief.pdf", "Q3-account-review.md"], role: "Sales" },
+        },
+      ]}
+    >
+      <main className="min-h-screen overflow-hidden bg-[#08111d] text-slate-100 selection:bg-cyan-300 selection:text-slate-950">
       <div className="pointer-events-none fixed inset-0 opacity-30 [background-image:linear-gradient(rgba(148,163,184,.06)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,.06)_1px,transparent_1px)] [background-size:48px_48px]" />
       <div className="relative mx-auto max-w-[1500px] px-4 py-4 sm:px-6 lg:px-10 lg:py-6">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
@@ -144,6 +161,7 @@ export default function OperationsRoom({ onBackToOverview }: { onBackToOverview:
         {activeStep && state.status === "running" && <div className="mt-5 flex justify-end"><Button size="sm" variant="ghost" className="text-[10px] text-slate-600 hover:text-rose-300" onClick={runFailureDemo}>Simulate tool failure</Button></div>}
         <footer className="mt-12 flex flex-col gap-3 border-t border-white/10 py-7 text-[10px] text-slate-600 sm:flex-row sm:items-center sm:justify-between"><span>AI Operations Room · Demo orchestration only</span><span><ShieldCheck className="mr-1 inline size-3" />Human approval remains in the loop</span></footer>
       </div>
-    </main>
+      </main>
+    </AIPageContextScope>
   );
 }

@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
-const source = readFileSync("src/pages/showcase/index.tsx", "utf8");
+const source = [
+  readFileSync("src/pages/showcase/index.tsx", "utf8"),
+  readFileSync("src/pages/showcase/operations-room.tsx", "utf8"),
+].join("\n");
 
 for (const text of [
   "Demo data",
@@ -23,6 +26,17 @@ for (const text of [
   "setQuery(\"\")",
   "aria-label=\"Create demo record\"",
   "flex-wrap",
+  "Operations Room",
+  "Generate plan",
+  "Approve plan",
+  "Reject",
+  "Retry",
+  "Skip",
+  "Take over",
+  "Reset mission",
+  "Demo orchestration",
+  "4 demo records",
+  "2 knowledge sources",
   "md:grid-cols-",
 ]) {
   assert.ok(source.includes(text), `missing showcase requirement: ${text}`);
