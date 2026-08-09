@@ -19,6 +19,10 @@ for (const text of [
   "Registry extensions",
   "selectedDeal",
   "automationExpanded",
+  "setAutomationExpanded(true)",
+  "setQuery(\"\")",
+  "aria-label=\"Create demo record\"",
+  "flex-wrap",
   "md:grid-cols-",
 ]) {
   assert.ok(source.includes(text), `missing showcase requirement: ${text}`);
