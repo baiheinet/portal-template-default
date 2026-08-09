@@ -129,6 +129,7 @@ function SettingsLink({ className }: { className?: string }) {
         <TooltipTrigger
           render={
             <Button
+              nativeButton={false}
               render={
                 <a
                   href={resolveNocoBaseSettingsUrl()}
