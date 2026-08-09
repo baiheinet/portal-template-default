@@ -135,7 +135,7 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 export default function ShowcasePage() {
-  const [mode, setMode] = useState<"overview" | "operations">("overview");
+  const [mode, setMode] = useState<"overview" | "operations">("operations");
   const [filter, setFilter] = useState<FilterValue>("All");
   const [query, setQuery] = useState("");
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);

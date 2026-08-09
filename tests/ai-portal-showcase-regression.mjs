@@ -37,6 +37,7 @@ for (const text of [
   "Demo orchestration",
   "4 demo records",
   "2 knowledge sources",
+  "useState<\"overview\" | \"operations\">(\"operations\")",
   "md:grid-cols-",
 ]) {
   assert.ok(source.includes(text), `missing showcase requirement: ${text}`);

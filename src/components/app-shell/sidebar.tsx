@@ -308,12 +308,12 @@ function SidebarFooter() {
             </div>
             <div className="text-muted-foreground">
               <a
-                href="https://nocobase.com"
+                href="https://www.seg.plus"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-sidebar-foreground hover:underline"
               >
-                NocoBase
+                赛鸽
               </a>{" "}
               {translate(
                 "shell.footer.reliabilitySuffix",
@@ -408,6 +408,7 @@ function SidebarButton({
 
   return (
     <Button
+      nativeButton={!(asLink && item.route)}
       render={
         asLink && item.route ? (
           <Link
