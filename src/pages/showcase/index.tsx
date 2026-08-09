@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslate } from "@refinedev/core";
 import {
   Activity,
   ArrowUpRight,
@@ -135,6 +136,7 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 export default function ShowcasePage() {
+  const translate = useTranslate();
   const [mode, setMode] = useState<"overview" | "operations">("operations");
   const [filter, setFilter] = useState<FilterValue>("All");
   const [query, setQuery] = useState("");
@@ -168,7 +170,7 @@ export default function ShowcasePage() {
             <div className="grid size-9 place-items-center rounded-xl bg-cyan-300 text-slate-950"><Sparkles className="size-4" /></div>
             <div><p className="text-sm font-semibold tracking-tight">NocoBase <span className="text-cyan-300">AI Portal</span></p><p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Capability command center</p></div>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-slate-400"><Button size="sm" variant="outline" className="border-cyan-300/25 bg-cyan-300/10 text-cyan-200 hover:bg-cyan-300/20" onClick={() => setMode("operations")}><Bot /> Operations Room</Button><span className="size-2 rounded-full bg-emerald-300 shadow-[0_0_12px_#6ee7b7]" /> Runtime online <Badge className="bg-white/10 text-slate-300">Demo data</Badge></div>
+          <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-slate-400"><Button size="sm" variant="outline" className="border-cyan-300/25 bg-cyan-300/10 text-cyan-200 hover:bg-cyan-300/20" onClick={() => setMode("operations")}><Bot /> {translate("showcase.operations.mode.room", "Operations Room")}</Button><span className="size-2 rounded-full bg-emerald-300 shadow-[0_0_12px_#6ee7b7]" /> Runtime online <Badge className="bg-white/10 text-slate-300">Demo data</Badge></div>
         </header>
 
         <section className="grid gap-8 py-12 lg:grid-cols-[1.15fr_.85fr] lg:items-end lg:py-20">

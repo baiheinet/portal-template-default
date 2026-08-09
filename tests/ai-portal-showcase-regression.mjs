@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 const source = [
   readFileSync("src/pages/showcase/index.tsx", "utf8"),
   readFileSync("src/pages/showcase/operations-room.tsx", "utf8"),
+  readFileSync("src/locales/en-US.ts", "utf8"),
+  readFileSync("src/locales/zh-CN.ts", "utf8"),
 ].join("\n");
 
 for (const text of [
