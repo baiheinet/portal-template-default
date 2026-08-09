@@ -26,7 +26,7 @@ for (const text of [
   "automationExpanded",
   "setAutomationExpanded(true)",
   "setQuery(\"\")",
-  "aria-label=\"Create demo record\"",
+  "showcase.overview.newRecord",
   "flex-wrap",
   "Operations Room",
   "Generate plan",
