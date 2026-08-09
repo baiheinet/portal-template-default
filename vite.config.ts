@@ -73,6 +73,7 @@ export default defineConfig(({ mode }) => {
       portalRawIndexHtmlPlugin({ root: __dirname, base: portalBase }),
     ],
     resolve: {
+      dedupe: ["react", "react-dom"],
       alias: {
         "@/extensions": extensionsRoot,
         "@": path.resolve(__dirname, "./src"),
