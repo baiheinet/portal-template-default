@@ -41,7 +41,7 @@ export function DataTable<TData extends BaseRecord>({
   const columns = getAllColumns();
   const leafColumns = table.reactTable.getAllLeafColumns();
   const isLoading = tableQuery.isLoading;
-
+  const isFetching = tableQuery.isFetching;
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const [isOverflowing, setIsOverflowing] = useState({
@@ -119,7 +119,7 @@ export function DataTable<TData extends BaseRecord>({
             ))}
           </TableHeader>
           <TableBody className="relative">
-            {isLoading ? (
+            {isLoading&&isFetching ? (
               <>
                 {Array.from({ length: pageSize < 1 ? 1 : pageSize }).map(
                   (_, rowIndex) => (
