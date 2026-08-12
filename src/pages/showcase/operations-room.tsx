@@ -192,8 +192,8 @@ export default function OperationsRoom({ onBackToOverview }: { onBackToOverview:
         },
       ]}
     >
-      <main className="min-h-screen overflow-hidden bg-[#08111d] text-slate-100 selection:bg-cyan-300 selection:text-slate-950">
-      <div className="pointer-events-none fixed inset-0 opacity-30 [background-image:linear-gradient(rgba(148,163,184,.06)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,.06)_1px,transparent_1px)] [background-size:48px_48px]" />
+      <main className="showcase-theme min-h-screen overflow-hidden bg-[#08111d] text-slate-100 selection:bg-cyan-300 selection:text-slate-950">
+      <div className="showcase-grid pointer-events-none fixed inset-0 opacity-30 [background-size:48px_48px]" />
       <div className="relative mx-auto max-w-[1500px] px-4 py-4 sm:px-6 lg:px-10 lg:py-6">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div className="flex items-center gap-3"><Button size="icon-sm" variant="ghost" aria-label={translate("showcase.operations.back", "Back to overview")} className="text-slate-400" onClick={onBackToOverview}><ArrowLeft /></Button><div className="grid size-9 place-items-center rounded-xl bg-cyan-300 text-slate-950"><Sparkles className="size-4" /></div><div><p className="text-sm font-semibold tracking-tight">AI <span className="text-cyan-300">{translate("showcase.operations.mode.room", "Operations Room")}</span></p><p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{translate("showcase.operations.header.subtitle", "Governed execution workspace")}</p></div></div>

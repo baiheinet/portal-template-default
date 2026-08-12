@@ -155,7 +155,7 @@ function MiniBars() {
 function ScoreRing({ score }: { score: number }) {
   return (
     <div className="relative grid size-24 place-items-center rounded-full" style={{ background: `conic-gradient(#6ee7d8 ${score * 3.6}deg, rgba(255,255,255,.08) 0deg)` }}>
-      <div className="grid size-[4.4rem] place-items-center rounded-full bg-[#101b29]">
+      <div className="showcase-ring-center grid size-[4.4rem] place-items-center rounded-full bg-[#101b29]">
         <span className="text-xl font-semibold text-white">{score}</span>
       </div>
     </div>
@@ -190,8 +190,8 @@ export default function ShowcasePage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#08111d] text-slate-100 selection:bg-cyan-300 selection:text-slate-950">
-      <div className="pointer-events-none fixed inset-0 opacity-30 [background-image:linear-gradient(rgba(148,163,184,.06)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,.06)_1px,transparent_1px)] [background-size:48px_48px]" />
+    <main className="showcase-theme min-h-screen overflow-hidden bg-[#08111d] text-slate-100 selection:bg-cyan-300 selection:text-slate-950">
+      <div className="showcase-grid pointer-events-none fixed inset-0 opacity-30 [background-size:48px_48px]" />
       <div className="pointer-events-none fixed -left-48 top-0 size-[38rem] rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="relative mx-auto max-w-[1500px] px-4 py-4 sm:px-6 lg:px-10 lg:py-6">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">

@@ -141,6 +141,78 @@
 }
 
 @layer components {
+  .showcase-theme {
+    --showcase-bg: #f3f7fa;
+    --showcase-panel: rgb(255 255 255 / 88%);
+    --showcase-panel-muted: rgb(15 35 55 / 5%);
+    --showcase-foreground: #122235;
+    --showcase-muted: #526579;
+    --showcase-subtle: #718398;
+    --showcase-border: rgb(15 35 55 / 13%);
+    --showcase-grid: rgb(15 35 55 / 8%);
+  }
+
+  .dark .showcase-theme {
+    --showcase-bg: #08111d;
+    --showcase-panel: rgb(13 26 41 / 92%);
+    --showcase-panel-muted: rgb(255 255 255 / 5%);
+    --showcase-foreground: #f8fafc;
+    --showcase-muted: #a6b4c4;
+    --showcase-subtle: #64748b;
+    --showcase-border: rgb(255 255 255 / 11%);
+    --showcase-grid: rgb(148 163 184 / 8%);
+  }
+
+  .showcase-theme {
+    background-color: var(--showcase-bg) !important;
+    color: var(--showcase-foreground);
+  }
+
+  .showcase-theme .showcase-grid {
+    background-image: linear-gradient(var(--showcase-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--showcase-grid) 1px, transparent 1px) !important;
+  }
+
+  .showcase-theme [class*="bg-[#08111d"] {
+    background-color: var(--showcase-bg) !important;
+  }
+
+  .showcase-theme [class*="bg-[#0d1a29"] {
+    background-color: var(--showcase-panel) !important;
+  }
+
+  .showcase-theme [class*="bg-[#101b29"] {
+    background-color: var(--showcase-bg) !important;
+  }
+
+  .showcase-theme [class*="bg-white/"] {
+    background-color: var(--showcase-panel-muted) !important;
+  }
+
+  .showcase-theme [class*="border-white/"] {
+    border-color: var(--showcase-border) !important;
+  }
+
+  .showcase-theme [class*="text-white"] {
+    color: var(--showcase-foreground) !important;
+  }
+
+  .showcase-theme [class*="text-slate-100"],
+  .showcase-theme [class*="text-slate-200"],
+  .showcase-theme [class*="text-slate-300"],
+  .showcase-theme [class*="text-slate-400"] {
+    color: var(--showcase-muted) !important;
+  }
+
+  .showcase-theme [class*="text-slate-500"],
+  .showcase-theme [class*="text-slate-600"] {
+    color: var(--showcase-subtle) !important;
+  }
+
+  .showcase-theme .showcase-ring-center {
+    background-color: var(--showcase-bg) !important;
+  }
+
   .resource-form {
     @apply max-w-3xl space-y-6 rounded-xl border bg-card p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-8;
   }
