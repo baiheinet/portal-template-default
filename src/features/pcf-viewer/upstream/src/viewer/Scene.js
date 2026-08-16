@@ -13,6 +13,7 @@ import { ValveGeometry } from '../geometry/ValveGeometry.js';
 import { ReducerGeometry } from '../geometry/ReducerGeometry.js';
 import { SupportGeometry } from '../geometry/SupportGeometry.js';
 import { FlangeGeometry } from '../geometry/FlangeGeometry.js';
+import { resolveSelectionBox } from './scene-options.js';
 
 export class Scene {
     constructor(container, options = {}) {
@@ -33,6 +34,7 @@ export class Scene {
         this.onBoxSelectionComplete = null;
         this._animationFrameId = null;
         this._disposed = false;
+        this.options = options;
         this._onResize = this.onWindowResize.bind(this);
         this._onCanvasClick = (event) => this.onMouseClick(event);
         this._onCanvasMove = (event) => this.onMouseMove(event);
@@ -116,7 +118,7 @@ export class Scene {
         this.scene.add(this.pipingGroup);
 
         // Selection box DOM element
-        this._boxSelectEl = options.selectionBox ?? null;
+        this._boxSelectEl = resolveSelectionBox(this.options);
 
         // Standard event listeners
         window.addEventListener('resize', this._onResize);
