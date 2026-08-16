@@ -1,0 +1,5 @@
+.pcf-viewer-page { min-height: 100%; background: hsl(var(--muted) / .18); }
+.pcf-dropzone { width: 100%; border: 1px dashed hsl(var(--border)); border-radius: .75rem; padding: 1rem .5rem; color: hsl(var(--muted-foreground)); font-size: .75rem; transition: .2s ease; }
+.pcf-dropzone:hover, .pcf-dropzone-active { border-color: hsl(var(--primary)); background: hsl(var(--primary) / .08); color: hsl(var(--primary)); }
+.pcf-viewer-canvas { position: relative; width: 100%; height: 100%; min-height: 480px; }
+.pcf-viewer-selection-box { position: absolute; pointer-events: none; border: 1px solid #38bdf8; background: rgb(56 189 248 / .15); }
