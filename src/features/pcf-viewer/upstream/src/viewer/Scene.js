@@ -15,7 +15,7 @@ import { SupportGeometry } from '../geometry/SupportGeometry.js';
 import { FlangeGeometry } from '../geometry/FlangeGeometry.js';
 
 export class Scene {
-    constructor(container) {
+    constructor(container, options = {}) {
         this.container = container;
         this.scene = null;
         this.camera = null;
@@ -31,6 +31,11 @@ export class Scene {
         this.onComponentSelected = null;
         this.onFilesChanged = null;
         this.onBoxSelectionComplete = null;
+        this._animationFrameId = null;
+        this._disposed = false;
+        this._onResize = this.onWindowResize.bind(this);
+        this._onCanvasClick = (event) => this.onMouseClick(event);
+        this._onCanvasMove = (event) => this.onMouseMove(event);
 
         // Box selection state
         this.boxSelectMode = false;
@@ -111,12 +116,12 @@ export class Scene {
         this.scene.add(this.pipingGroup);
 
         // Selection box DOM element
-        this._boxSelectEl = document.getElementById('selectionBox');
+        this._boxSelectEl = options.selectionBox ?? null;
 
         // Standard event listeners
-        window.addEventListener('resize', () => this.onWindowResize());
-        this.renderer.domElement.addEventListener('click', (e) => this.onMouseClick(e));
-        this.renderer.domElement.addEventListener('mousemove', (e) => this.onMouseMove(e));
+        window.addEventListener('resize', this._onResize);
+        this.renderer.domElement.addEventListener('click', this._onCanvasClick);
+        this.renderer.domElement.addEventListener('mousemove', this._onCanvasMove);
 
         // Start animation loop
         this.animate();
@@ -461,6 +466,17 @@ export class Scene {
         this.fitCameraToSelection();
     }
 
+    selectComponent(filename, componentIndex) {
+        const fileData = this.fileGroups.get(filename);
+        if (!fileData) return false;
+        const target = fileData.group.children.find(
+            (child) => child.userData.componentIndex === componentIndex,
+        );
+        if (!target) return false;
+        this.selectObject(target);
+        return true;
+    }
+
     /**
      * Generate a distinct color for each file
      */
@@ -539,14 +555,13 @@ export class Scene {
     clearPiping() {
         while (this.pipingGroup.children.length > 0) {
             const child = this.pipingGroup.children[0];
-            if (child.geometry) child.geometry.dispose();
-            if (child.material) {
-                if (Array.isArray(child.material)) {
-                    child.material.forEach(m => m.dispose());
-                } else {
-                    child.material.dispose();
+            child.traverse((nested) => {
+                if (nested.geometry) nested.geometry.dispose();
+                if (nested.material) {
+                    if (Array.isArray(nested.material)) nested.material.forEach((material) => material.dispose());
+                    else nested.material.dispose();
                 }
-            }
+            });
             this.pipingGroup.remove(child);
         }
         this.selectedObject = null;
@@ -726,7 +741,8 @@ export class Scene {
      * Animation loop
      */
     animate() {
-        requestAnimationFrame(() => this.animate());
+        if (this._disposed) return;
+        this._animationFrameId = requestAnimationFrame(() => this.animate());
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
     }
@@ -735,9 +751,16 @@ export class Scene {
      * Dispose of resources
      */
     dispose() {
+        if (this._disposed) return;
+        this._disposed = true;
+        this._exitBoxSelectMode();
+        window.removeEventListener('resize', this._onResize);
+        this.renderer.domElement.removeEventListener('click', this._onCanvasClick);
+        this.renderer.domElement.removeEventListener('mousemove', this._onCanvasMove);
+        if (this._animationFrameId !== null) cancelAnimationFrame(this._animationFrameId);
         this.clearPiping();
         this.controls.dispose();
         this.renderer.dispose();
-        window.removeEventListener('resize', () => this.onWindowResize());
+        this.renderer.domElement.remove();
     }
 }

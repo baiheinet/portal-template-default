@@ -55,6 +55,18 @@ pnpm build:html
 Application pages and resources live under `src`. The included Users page is a
 working example based on the standard NocoBase `users` collection.
 
+## PCF/IDF Viewer integration
+
+The application includes a lazy `/pcf-viewer` page adapted from
+[`baiheinet/PCF-viewer`](https://github.com/baiheinet/PCF-viewer). It parses PCF
+and IDF files in the browser and renders them with Three.js, including camera
+presets, file visibility, component selection, and property inspection. Use
+the built-in `Load sample.pcf` action to verify the page without server data.
+
+This also demonstrates integrating a package that is not part of
+`@nocobase/portal-sdk`: `three` is declared in `devDependencies`, imported by
+the application-owned feature, and bundled into the lazy viewer chunk by Vite.
+
 Application translations live in `src/locales`. Default locale, available
 locale labels, i18next options, and post-switch behavior remain customizable in
 `src/providers/i18n/runtime.ts`. Shared UI components live in
