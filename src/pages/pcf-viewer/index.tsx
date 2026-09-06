@@ -62,7 +62,7 @@ export default function PcfViewerPage() {
     finally { setBusy(false); }
   }, [globalOffset]);
 
-  const loadSample = async () => { const response = await fetch("/samples/sample.pcf"); const content = await response.text(); await loadFiles([new File([content], "sample.pcf", { type: "text/plain" })]); };
+  const loadSample = async () => { const response = await fetch("./samples/sample.pcf"); const content = await response.text(); await loadFiles([new File([content], "sample.pcf", { type: "text/plain" })]); };
   const handleDrop = (event: DragEvent) => { event.preventDefault(); setDragging(false); void loadFiles(Array.from(event.dataTransfer.files)); };
 
   return <main className="pcf-viewer-page">
