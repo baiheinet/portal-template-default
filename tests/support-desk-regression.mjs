@@ -6,21 +6,20 @@ import assert from "node:assert/strict";
 // intact across refactors. Assertions are source-text checks so CI can run
 // them without a backend.
 
-const model = readFileSync("src/features/support-desk/model.ts", "utf8");
-const api = readFileSync("src/features/support-desk/api.ts", "utf8");
-const routes = readFileSync("src/routes.tsx", "utf8");
-const detail = readFileSync(
-  "src/features/support-desk/helpdesk-detail.tsx",
-  "utf8"
+// Normalize CRLF/LF so checkout settings cannot break the text assertions.
+const readSource = (path) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+
+const model = readSource("src/features/support-desk/model.ts");
+const api = readSource("src/features/support-desk/api.ts");
+const routes = readSource("src/routes.tsx");
+const detail = readSource(
+  "src/features/support-desk/helpdesk-detail.tsx"
 );
-const zh = readFileSync("src/locales/zh-CN.ts", "utf8");
-const en = readFileSync("src/locales/en-US.ts", "utf8");
-const helpdeskPage = readFileSync("src/pages/helpdesk/index.tsx", "utf8");
-const overviewPage = readFileSync("src/pages/helpdesk/overview.tsx", "utf8");
-const customerSubmit = readFileSync(
-  "src/features/support-desk/customer-submit.tsx",
-  "utf8"
-);
+const zh = readSource("src/locales/zh-CN.ts");
+const en = readSource("src/locales/en-US.ts");
+const helpdeskPage = readSource("src/pages/helpdesk/index.tsx");
+const overviewPage = readSource("src/pages/helpdesk/overview.tsx");
+const customerSubmit = readSource("src/features/support-desk/customer-submit.tsx");
 
 // State machine: pending -> processing -> resolved -> closed (reopen allowed).
 for (const rule of [
@@ -88,7 +87,7 @@ assert.ok(detail.includes('nextStatus(ticket.status, action)'), "detail must con
 assert.ok(
   helpdeskPage.includes("classifyAttention") ||
     overviewPage.includes("classifyAttention") ||
-    readFileSync("src/features/support-desk/helpdesk-table.tsx", "utf8").includes(
+    readSource("src/features/support-desk/helpdesk-table.tsx").includes(
       "AttentionReason"
     ),
   "attention classification must surface in helpdesk surfaces"
