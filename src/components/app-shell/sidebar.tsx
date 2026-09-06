@@ -29,6 +29,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
+import { useAttentionCount } from "@/features/support-desk/attention-count";
 import { ChevronRight, ListIcon, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Brand } from "@/components/app-shell/brand";
@@ -402,6 +403,7 @@ function SidebarButton({
       >
         {displayName}
       </span>
+      {item.name === "helpdesk" ? <SidebarAttentionBadge /> : null}
       {rightIcon}
     </>
   );
@@ -436,3 +438,26 @@ function SidebarButton({
 }
 
 Sidebar.displayName = "Sidebar";
+
+function SidebarAttentionBadge() {
+  const translate = useTranslate();
+  const count = useAttentionCount();
+
+  if (count <= 0) return null;
+
+  return (
+    <span
+      title={translate(
+        "support.nav.attentionBadge",
+        { ns: "starter" },
+        "需关注工单"
+      )}
+      className={cn(
+        "ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5",
+        "bg-red-500 text-[11px] font-semibold tabular-nums text-white"
+      )}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
