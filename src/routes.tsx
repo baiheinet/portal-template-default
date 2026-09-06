@@ -68,6 +68,7 @@ export const appRoutes = defineAppRoutes([
       {
         name: "helpdesk-ticket-detail",
         path: ":ticketId",
+        resourceAction: "show",
         lazy: () => import("./pages/helpdesk/ticket-detail"),
       },
     ],

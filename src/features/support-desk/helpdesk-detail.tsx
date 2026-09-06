@@ -72,7 +72,9 @@ export function HelpdeskDetail({
 
   const canResolve =
     visibility === "public" && replyBody.trim().length > 0 && !busy;
-  const replyAllowed = nextStatus(ticket.status, "reply") !== null;
+  // Ongoing conversation: replies are allowed while the ticket is open
+  // (pending or processing). Closed/resolved tickets need reopen first.
+  const replyAllowed = ticket.status === "pending" || ticket.status === "processing";
   const transition = (action: "resolve" | "close" | "reopen") => {
     // Resolve is allowed from pending or processing: it sends the public
     // solution note (which itself completes the first response) and the
