@@ -1,4 +1,4 @@
-import { Box, Gauge, Headset, Inbox, LifeBuoy } from "lucide-react";
+import { Box, Gauge, Headset, Inbox, LifeBuoy, Sheet } from "lucide-react";
 
 import { defineAppRoutes } from "@nocobase/portal-sdk/routing";
 
@@ -98,6 +98,18 @@ export const appRoutes = defineAppRoutes([
         label: "PCF/IDF Viewer",
         icon: <Box />,
         priority: 9,
+      },
+    },
+  },
+  {
+    name: "baserow",
+    path: "/baserow",
+    lazy: () => import("./pages/baserow"),
+    resource: {
+      meta: {
+        label: "Baserow 表格",
+        icon: <Sheet />,
+        priority: 3,
       },
     },
   },
