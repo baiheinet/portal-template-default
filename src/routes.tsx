@@ -64,6 +64,13 @@ export const appRoutes = defineAppRoutes([
         priority: 3,
       },
     },
+    children: [
+      {
+        name: "helpdesk-ticket-detail",
+        path: ":ticketId",
+        lazy: () => import("./pages/helpdesk/ticket-detail"),
+      },
+    ],
   },
   {
     name: "helpdesk-overview",
