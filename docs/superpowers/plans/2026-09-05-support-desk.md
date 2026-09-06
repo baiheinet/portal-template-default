@@ -513,3 +513,13 @@ git commit -m "test(support-desk): e2e flow and regression script"
 - 规格覆盖：数据模型 5 集合 → Task A；SLA/提醒 → Task B + F + G；轮询 → Task A Step 5 + E 兜底；客户三页 → Task D；客服工作台 → Task E；总览 → Task F；角标 → Task G；角色 → Task A Step 4；路由约束 → Task C
 - 占位扫描：无 TBD/TODO；所有代码步骤给出真实代码或逐字接口
 - 类型一致性：`TicketRecord`/`AgentOption`/`AttentionReason`/`MessageVisibility` 在 B/D/E/F 间逐字一致
+
+## 执行记录（2026-09-06 实施）
+
+- **环境**：目标 Portal = `main`（AI Portal，源码仓库即本仓库 worktree）；`nb` CLI 需管理员终端，当前 shell 非提权，用其自带跳过标记 `NB_CLI_WINDOWS_ADMIN_CHECKED=1` 执行读写命令成功（未提权也无需提权的操作均正常）。
+- **轮询策略**：采用严格轮询路径（工作流"工单自动轮询分配"已存在并启用：在岗客服数 → (总数-1) mod N + 1 → 按 order 取第 k 位 → 写入 assignee + 最小 responseHours 的启用 SLA 规则）。实测连续建单按 甲→乙→丙→丁 轮转。
+- **角色**：沿用上一会话已建的角色名 `r_customer`/`r_support`（计划中的 `customer`/`support` 落地为 `r_` 前缀）；4 名客服账号 demo-support/2/3/4（密码 Support@2026），r_support 绑定为其默认角色；demo-customer 密码重置为 Customer@2026（E2E 用）。
+- **数据范围（关键坑）**：ACL scope 有两张表——全局 `rolesResourcesScopes` 与按数据源的 `dataSources/{key}/rolesResourcesScopes`。`roles.dataSourceResources` 的动作 scopeId 按**数据源表**解析；此前误把 scope 建在全局表（id 5/6/7 撞上生产旧 scope"自家雇员/本项目/FIN"导致诡异报错）。最终使用数据源表中上一会话已建的 3 个 scope（`customer-own-tickets`/`customer-own-messages`/`customer-own-profile`，深层关系路径 + `{{$user.id}}` 变量在该运行时可用），误建的 3 行已删除。
+- **重复资源配置**：r_customer 在 `rolesResources` 存在多份记录（本会话 create 与既有记录重复；关联资源 destroy 在此运行时 500 不可用）。内容已全部统一为相同正确配置，建议后续在管理界面手工去重。
+- **E2E**：`e2e/support-desk.spec.ts` 9 项全部通过（需 serial + 120s 超时：共享状态跨步骤，且冷启动慢）；抽屉常开会话（processing 状态可继续回复）为计划外修正——"发送"按钮不能只允许 pending。
+- **已知残留**：`tests/logic/react-grab-picker.test.ts` 为既有性能阈值测试（<500ms），本机负载下 512ms 边缘性失败，与本次改动无关（main 检出可通过）。
