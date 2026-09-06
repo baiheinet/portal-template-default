@@ -437,4 +437,12 @@ export const starter = {
   "support.overview.workloadEmpty": "暂无客服数据",
   "support.overview.recentResolved": "最近解决",
   "support.overview.recentEmpty": "最近 7 天还没有解决记录",
+  "support.ai.ask": "问 AI",
+  "support.ai.draftReply": "起草客户回复",
+  "support.ai.draftReplySystem": "你是客服的助手。根据工单上下文与沟通记录，用客户的语言起草简洁、专业的回复；不得虚构产品事实。",
+  "support.ai.draftReplyUser": "基于当前工单的上下文与沟通记录，起草一条客户可见的回复：先确认问题与影响，再给出下一步处理方案或所需信息。",
+  "support.ai.summarizeTicket": "总结工单现状",
+  "support.ai.summarizeSystem": "你是客服团队的助手。用简短要点总结工单状态、风险与建议的下一步。",
+  "support.ai.summarizeUser": "总结当前工单：问题、已做处理、当前状态、下一步建议。",
 } as const;
+

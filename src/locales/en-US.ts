@@ -447,4 +447,11 @@ export const starter = {
   "support.overview.workloadEmpty": "No support agents yet",
   "support.overview.recentResolved": "Recently resolved",
   "support.overview.recentEmpty": "Nothing resolved in the last 7 days",
+  "support.ai.ask": "Ask AI",
+  "support.ai.draftReply": "Draft customer reply",
+  "support.ai.draftReplySystem": "You assist a customer service agent. Draft a concise, professional customer reply in the customer's language based on the ticket context and conversation history. Do not invent facts about the product.",
+  "support.ai.draftReplyUser": "Based on the current ticket context and conversation history, draft a customer-visible reply: acknowledge the issue and impact first, then give the next step or the information you need.",
+  "support.ai.summarizeTicket": "Summarize ticket",
+  "support.ai.summarizeSystem": "You assist a customer service team. Summarize the ticket status, open risks, and the recommended next action in a compact bullet list.",
+  "support.ai.summarizeUser": "Summarize this ticket: issue, what has been done, current status, recommended next step.",
 } as const;
