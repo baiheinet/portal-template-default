@@ -22,6 +22,9 @@ export default defineConfig({
     root,
     environment: "jsdom",
     setupFiles: ["./tests/setup/vitest.ts"],
+    // This Windows runner times out on parallel workers; run files sequentially.
+    pool: "forks",
+    poolOptions: { forks: { singleFork: true } },
     include: [
       "tests/logic/**/*.test.{ts,tsx}",
       "tests/components/**/*.test.{ts,tsx}",
